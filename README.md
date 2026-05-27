@@ -97,10 +97,11 @@ Foundational positioning: OSS Kafka vs Confluent Cloud capabilities, the data st
 ---
 
 ### [02 — Broker Infrastructure](02-Broker-Infrastructure/README.md)
-Broker internals: KRaft mode replacing ZooKeeper, partition strategy design, replication factor and compaction decisions.
+Broker internals: KRaft mode replacing ZooKeeper, partition strategy design, replication factor and compaction decisions, and tiered storage for long retention.
 
 - [kraft-mode.md](02-Broker-Infrastructure/kraft-mode.md)
 - [partitioning-strategies.md](02-Broker-Infrastructure/partitioning-strategies.md)
+- [tiered-storage.md](02-Broker-Infrastructure/tiered-storage.md)
 
 ---
 
