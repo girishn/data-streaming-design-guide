@@ -1,4 +1,4 @@
-# B2B Logistics CX Transformation — Real-Time Shipment Tracking
+# Real-Time Shipment Tracking
 
 ## The Before State
 
