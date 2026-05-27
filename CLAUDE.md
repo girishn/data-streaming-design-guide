@@ -24,10 +24,10 @@ Fourteen numbered modules, each a self-contained directory:
 | 08 | Stream Governance — Schema evolution, broker-side validation, PII/crypto-shredding, **stream catalog, stream lineage** | Done |
 | 09 | Security Architecture — mTLS, OAuth/OIDC, CEL Identity Pools, multi-protocol | Done |
 | 10 | Operational Patterns — Transactional outbox, Debezium CDC, RocksDB S3 pre-seeding | Done |
-| 11 | Case Studies — B2B logistics CX, financial e-commerce EOS payment ledger | Done |
-| 12 | **Monitoring and Observability** — Consumer lag, broker metrics, Confluent Cloud Metrics API | Done |
-| 13 | **Multi-Region and Disaster Recovery** — Cluster Linking, MirrorMaker 2, active-active, RPO/RTO | Done |
-| 14 | **Performance Tuning** — Producer batching, consumer fetch tuning, broker thread configuration | Done |
+| 11 | **Monitoring and Observability** — Consumer lag, broker metrics, Confluent Cloud Metrics API | Done |
+| 12 | **Multi-Region and Disaster Recovery** — Cluster Linking, MirrorMaker 2, active-active, RPO/RTO | Done |
+| 13 | **Performance Tuning** — Producer batching, consumer fetch tuning, broker thread configuration | Done |
+| 14 | Case Studies — B2B logistics CX, financial e-commerce EOS payment ledger | Done |
 
 Each module has a `README.md` listing its files with one-line descriptions, and individual `.md` files for each topic.
 

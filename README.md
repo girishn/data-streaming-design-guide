@@ -4,7 +4,85 @@ Enterprise-grade reference covering Apache Kafka and Confluent Platform architec
 
 ## How to Use This Guide
 
-Each module is self-contained. Navigate directly to the area matching your immediate problem: if you are debugging consumer lag, start in `04-Data-Consumption`; if you are wiring a CDC pipeline, go to `10-Operational-Patterns/cdc-debezium.md`. Cross-references are explicit within files. No prescribed reading order — this is a reference, not a course.
+Each module is self-contained. Navigate directly to the area matching your immediate problem: if you are debugging consumer lag, start in `11-Monitoring-Observability/consumer-lag.md`; if you are wiring a CDC pipeline, go to `10-Operational-Patterns/cdc-debezium.md`. Cross-references are explicit within files. No prescribed reading order — this is a reference, not a course.
+
+---
+
+## Designing a System — Decision Sequence
+
+When starting a new data streaming design, work through these questions in order. Each links to the relevant module.
+
+**1. What is the data contract?**
+Define the event schema before any infrastructure decision. What fields, what types, what nullable guarantees? → [08 — Stream Governance](08-Stream-Governance/schema-evolution.md)
+
+**2. What is the topic structure?**
+How many partitions? What is the partition key? What retention policy? → [02 — Broker Infrastructure](02-Broker-Infrastructure/partitioning-strategies.md)
+
+**3. What delivery guarantee does the producer need?**
+At-least-once (idempotent) or exactly-once (transactional)? → [03 — Data Production](03-Data-Production/idempotent-producers.md)
+
+**4. What is the consumer topology?**
+How many consumer groups? How do groups share partitions? What happens on rebalance? → [04 — Data Consumption](04-Data-Consumption/consumer-groups.md)
+
+**5. Is stream processing required?**
+Stateless transformations, stateful aggregations, or joins? Which framework? → [06 — Stream Processing](06-Stream-Processing/kafka-streams-vs-flink.md)
+
+**6. What are the governance requirements?**
+Schema compatibility enforcement, PII handling, audit lineage? → [08 — Stream Governance](08-Stream-Governance/README.md)
+
+**7. What is the security model?**
+mTLS or OAuth/OIDC? Fine-grained access via Identity Pools? → [09 — Security Architecture](09-Security-Architecture/mtls-oauth.md)
+
+**8. How does data enter the system?**
+Direct producer, Kafka Connect, or CDC from a database? → [05 — Enterprise Connect](05-Enterprise-Connect/README.md), [10 — Operational Patterns](10-Operational-Patterns/cdc-debezium.md)
+
+**9. How will the system be observed?**
+What metrics matter? What are the alert thresholds? → [11 — Monitoring and Observability](11-Monitoring-Observability/README.md)
+
+**10. What is the DR strategy?**
+Active-passive or active-active? RPO/RTO requirements? → [12 — Multi-Region DR](12-Multi-Region-DR/README.md)
+
+---
+
+## Production Readiness Checklist
+
+Before promoting a Kafka-based system to production, verify:
+
+**Reliability**
+- [ ] Replication factor ≥ 3 for all production topics
+- [ ] `min.insync.replicas` = RF − 1 on all production topics
+- [ ] `acks=all` configured on all producers
+- [ ] Idempotent producers enabled (`enable.idempotence=true`)
+- [ ] Transactional producers used where cross-partition atomicity is required
+
+**Consumer Stability**
+- [ ] Consumer groups use `CooperativeStickyAssignor`
+- [ ] Static membership (`group.instance.id`) configured for StatefulSet deployments
+- [ ] `max.poll.interval.ms` tuned to actual processing time — not the default
+- [ ] Dead letter queue configured for all Kafka Connect connectors
+
+**Governance**
+- [ ] All topics registered in Schema Registry with an explicit compatibility mode
+- [ ] `BACKWARD` or `FULL_TRANSITIVE` compatibility enforced (not `NONE`)
+- [ ] PII fields tagged; crypto-shredding key rotation plan in place if applicable
+- [ ] Broker-side schema validation enabled if forward compatibility is a hard requirement
+
+**Security**
+- [ ] All client connections use mTLS or OAuth/OIDC — no PLAINTEXT in production
+- [ ] ACLs scoped to minimum required topics and operations per service identity
+- [ ] TLS certificates have a rotation process documented
+
+**Observability**
+- [ ] `UnderReplicatedPartitions` alert set at threshold > 0 for > 60 seconds
+- [ ] `ActiveControllerCount` alert set at threshold ≠ 1 (immediate P1)
+- [ ] Consumer lag growth-rate alert (not absolute threshold) per consumer group
+- [ ] `RequestHandlerAvgIdlePercent` and `NetworkProcessorAvgIdlePercent` dashboards active
+
+**Disaster Recovery**
+- [ ] DR strategy chosen and documented (Cluster Linking or MirrorMaker 2)
+- [ ] Consumer offset sync enabled on DR link
+- [ ] Failover procedure tested in a non-production environment
+- [ ] RPO and RTO targets defined and verified against replication lag measurements
 
 ---
 
@@ -53,10 +131,11 @@ Kafka Connect in production: managed vs self-operated connectors, SMT chains for
 ---
 
 ### [06 — Stream Processing](06-Stream-Processing/README.md)
-Kafka Streams vs Flink decision criteria, state management internals, RocksDB tuning, and fault tolerance models.
+Kafka Streams vs Flink decision criteria, state management internals, RocksDB tuning, windowing semantics, and fault tolerance models.
 
 - [kafka-streams-vs-flink.md](06-Stream-Processing/kafka-streams-vs-flink.md)
 - [state-management.md](06-Stream-Processing/state-management.md)
+- [windowing.md](06-Stream-Processing/windowing.md)
 
 ---
 
@@ -69,11 +148,13 @@ ISR mechanics and MISR configuration, full exactly-once semantic protocol from i
 ---
 
 ### [08 — Stream Governance](08-Stream-Governance/README.md)
-Schema Registry compatibility modes, broker-side schema validation, PII tagging and the crypto-shredding pattern for right-to-erasure.
+Schema Registry compatibility modes, broker-side schema validation, PII tagging and the crypto-shredding pattern for right-to-erasure, stream catalog, and stream lineage.
 
 - [schema-evolution.md](08-Stream-Governance/schema-evolution.md)
 - [broker-side-validation.md](08-Stream-Governance/broker-side-validation.md)
 - [pii-tracking.md](08-Stream-Governance/pii-tracking.md)
+- [stream-catalog.md](08-Stream-Governance/stream-catalog.md)
+- [stream-lineage.md](08-Stream-Governance/stream-lineage.md)
 
 ---
 
@@ -95,8 +176,35 @@ Transactional outbox for dual-write safety, Debezium CDC configuration, and Rock
 
 ---
 
-### [11 — Case Studies](11-Case-Studies/README.md)
+### [11 — Monitoring and Observability](11-Monitoring-Observability/README.md)
+Consumer lag measurement and alerting strategy, broker JMX metrics and thread pool health, Confluent Cloud Metrics API for managed clusters.
+
+- [consumer-lag.md](11-Monitoring-Observability/consumer-lag.md)
+- [broker-jmx-metrics.md](11-Monitoring-Observability/broker-jmx-metrics.md)
+- [confluent-cloud-metrics-api.md](11-Monitoring-Observability/confluent-cloud-metrics-api.md)
+
+---
+
+### [12 — Multi-Region DR](12-Multi-Region-DR/README.md)
+Cluster Linking for byte-exact offset-preserving replication, MirrorMaker 2 for OSS-compatible cross-cluster replication, and active-active topology tradeoffs.
+
+- [cluster-linking.md](12-Multi-Region-DR/cluster-linking.md)
+- [mirrormaker2.md](12-Multi-Region-DR/mirrormaker2.md)
+- [active-active-dr.md](12-Multi-Region-DR/active-active-dr.md)
+
+---
+
+### [13 — Performance Tuning](13-Performance-Tuning/README.md)
+Producer batching and compression tuning, consumer fetch configuration, broker thread pool sizing and log flush strategy.
+
+- [producer-tuning.md](13-Performance-Tuning/producer-tuning.md)
+- [consumer-tuning.md](13-Performance-Tuning/consumer-tuning.md)
+- [broker-tuning.md](13-Performance-Tuning/broker-tuning.md)
+
+---
+
+### [14 — Case Studies](14-Case-Studies/README.md)
 Two production architectures: B2B logistics CX transformation with Salesforce CDC and Flink SQL, and financial e-commerce exactly-once payment ledger with hot SKU handling.
 
-- [logistics-cx-transformation.md](11-Case-Studies/logistics-cx-transformation.md)
-- [financial-ecommerce-eos.md](11-Case-Studies/financial-ecommerce-eos.md)
+- [logistics-cx-transformation.md](14-Case-Studies/logistics-cx-transformation.md)
+- [financial-ecommerce-eos.md](14-Case-Studies/financial-ecommerce-eos.md)

@@ -32,7 +32,7 @@ Because mirror topics are byte-for-byte replicas, offset parity is an inherent p
 - Consumers do not need to be aware they have failed over — the data at offset 5000 is identical
 - Schema IDs embedded in record bytes are preserved, so Schema Registry must also be replicated or accessible from both regions
 
-Compare this with MirrorMaker 2, where the offset on the destination is a different number from the source offset, requiring explicit translation at failover time. See `13-Multi-Region-DR/mirrormaker2.md`.
+Compare this with MirrorMaker 2, where the offset on the destination is a different number from the source offset, requiring explicit translation at failover time. See `12-Multi-Region-DR/mirrormaker2.md`.
 
 ## Consumer Group Offset Synchronisation
 
@@ -93,4 +93,4 @@ Enable all three for a complete DR setup. Without ACL sync, consumers on the des
 - Both clusters run Confluent Server or Confluent Cloud Dedicated/Enterprise
 - Preference for operational simplicity over framework flexibility — no Connect infrastructure to manage
 
-For open-source Kafka, tolerance for offset translation, or requirements for active-active bidirectional replication with conflict resolution, see `13-Multi-Region-DR/mirrormaker2.md` and `13-Multi-Region-DR/active-active-dr.md`.
+For open-source Kafka, tolerance for offset translation, or requirements for active-active bidirectional replication with conflict resolution, see `12-Multi-Region-DR/mirrormaker2.md` and `12-Multi-Region-DR/active-active-dr.md`.

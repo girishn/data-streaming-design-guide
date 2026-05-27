@@ -4,7 +4,7 @@
 
 Confluent Platform brokers expose operational metrics via Java Management Extensions (JMX). Each broker exposes its own MBeans — there is no aggregated cluster-level JMX view. Monitoring stacks (Prometheus JMX Exporter, Datadog, Grafana) scrape each broker independently and aggregate at the dashboard layer.
 
-JMX is the primary observability mechanism for self-managed Confluent Platform deployments. For Confluent Cloud, use the Metrics API instead — see `12-Monitoring-Observability/confluent-cloud-metrics-api.md`.
+JMX is the primary observability mechanism for self-managed Confluent Platform deployments. For Confluent Cloud, use the Metrics API instead — see `11-Monitoring-Observability/confluent-cloud-metrics-api.md`.
 
 Enable JMX on brokers by setting `KAFKA_JMX_PORT` or `-Dcom.sun.management.jmxremote.port` in the broker startup environment. In Confluent Platform on Kubernetes (CFK), JMX is exposed via a sidecar port by default.
 

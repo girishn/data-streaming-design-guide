@@ -29,7 +29,7 @@ Network threads handle socket I/O — reading bytes from incoming client connect
 **When to increase:**
 - High concurrent client connection count (thousands of connections per broker)
 - TLS encryption enabled: TLS handshakes consume network thread time for the crypto negotiation phase. Under heavy connection churn (clients reconnecting frequently), TLS handshake overhead can saturate the network thread pool before I/O threads are stressed.
-- `NetworkProcessorAvgIdlePercent` below 30% (see `12-Monitoring-Observability/broker-jmx-metrics.md`)
+- `NetworkProcessorAvgIdlePercent` below 30% (see `11-Monitoring-Observability/broker-jmx-metrics.md`)
 
 **Sizing guidance:**
 - 3–6: standard deployments with moderate client counts

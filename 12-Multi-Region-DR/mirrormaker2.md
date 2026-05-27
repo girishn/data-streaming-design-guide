@@ -104,4 +104,4 @@ Monitor `kafka.connect:type=MirrorSourceConnector,name=replication-latency-ms-av
 - Tolerance for approximate offset translation and at-least-once re-processing at failover
 - Need for fine-grained topic filtering, transformation via SMTs, or connector-level monitoring
 
-For offset-exact failover with second-scale RTO and a Confluent cluster on both sides, see `13-Multi-Region-DR/cluster-linking.md`.
+For offset-exact failover with second-scale RTO and a Confluent cluster on both sides, see `12-Multi-Region-DR/cluster-linking.md`.

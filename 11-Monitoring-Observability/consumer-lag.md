@@ -74,7 +74,7 @@ Alert when a single partition's lag is more than 10x the median lag across all p
 
 **Kafka Lag Exporter** (open source, Lightbend): scrapes consumer group offsets and LEOs from the broker, exposes partition-level lag as Prometheus metrics. Recommended for Confluent Platform deployments. Grafana dashboards are available from the community.
 
-**Confluent Cloud Metrics API:** exposes consumer group lag as a first-class metric without requiring direct broker access. See `12-Monitoring-Observability/confluent-cloud-metrics-api.md`.
+**Confluent Cloud Metrics API:** exposes consumer group lag as a first-class metric without requiring direct broker access. See `11-Monitoring-Observability/confluent-cloud-metrics-api.md`.
 
 **`kafka-consumer-groups.sh`:** built-in CLI for point-in-time lag inspection:
 ```bash
