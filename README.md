@@ -25,7 +25,7 @@ At-least-once (idempotent) or exactly-once (transactional)? → [03 — Data Pro
 How many consumer groups? How do groups share partitions? What happens on rebalance? → [04 — Data Consumption](04-Data-Consumption/consumer-groups.md)
 
 **5. Is stream processing required?**
-Stateless transformations, stateful aggregations, or joins? Which framework? → [06 — Stream Processing](06-Stream-Processing/kafka-streams-vs-flink.md)
+Stateless transformations, stateful aggregations, or joins? Which framework — Kafka Streams, Flink, or ksqlDB? → [06 — Stream Processing](06-Stream-Processing/kafka-streams-vs-flink.md), [ksqldb.md](06-Stream-Processing/ksqldb.md)
 
 **6. What are the governance requirements?**
 Schema compatibility enforcement, PII handling, audit lineage? → [08 — Stream Governance](08-Stream-Governance/README.md)
@@ -132,9 +132,10 @@ Kafka Connect in production: managed vs self-operated connectors, SMT chains for
 ---
 
 ### [06 — Stream Processing](06-Stream-Processing/README.md)
-Kafka Streams vs Flink decision criteria, state management internals, RocksDB tuning, windowing semantics, and fault tolerance models.
+Kafka Streams vs Flink decision criteria, ksqlDB for SQL-based streaming, state management internals, RocksDB tuning, windowing semantics, and fault tolerance models.
 
 - [kafka-streams-vs-flink.md](06-Stream-Processing/kafka-streams-vs-flink.md)
+- [ksqldb.md](06-Stream-Processing/ksqldb.md)
 - [state-management.md](06-Stream-Processing/state-management.md)
 - [windowing.md](06-Stream-Processing/windowing.md)
 
@@ -196,11 +197,12 @@ Cluster Linking for byte-exact offset-preserving replication, MirrorMaker 2 for 
 ---
 
 ### [13 — Performance Tuning](13-Performance-Tuning/README.md)
-Producer batching and compression tuning, consumer fetch configuration, broker thread pool sizing and log flush strategy.
+Producer batching and compression tuning, consumer fetch configuration, broker thread pool sizing, log flush strategy, and quota management for multi-tenant clusters.
 
 - [producer-tuning.md](13-Performance-Tuning/producer-tuning.md)
 - [consumer-tuning.md](13-Performance-Tuning/consumer-tuning.md)
 - [broker-tuning.md](13-Performance-Tuning/broker-tuning.md)
+- [quota-management.md](13-Performance-Tuning/quota-management.md)
 
 ---
 

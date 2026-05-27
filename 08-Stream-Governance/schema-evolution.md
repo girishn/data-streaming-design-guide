@@ -81,13 +81,61 @@ The compatibility mode determines which side of the pipeline must be updated fir
 
 ## Subject Naming Strategies
 
-The naming strategy determines how producers and consumers identify the Schema Registry subject for a given topic.
+The naming strategy determines how the Schema Registry subject is derived from a topic and record type. It governs how many schemas can coexist per topic and whether the same record type can evolve independently across topics.
 
-**`TopicNameStrategy` (default):** subject name = `{topic-name}-value` (or `-key`). One schema type per topic. Enforces that all producers to a topic write the same record type. Use for topics with a single, well-defined event type.
+**`TopicNameStrategy` (default)**
 
-**`RecordNameStrategy`:** subject name = fully qualified record class name (e.g., `com.company.events.OrderPlaced`). Multiple record types can share a single topic, each with its own independent evolution history. Use for event bus topics that carry heterogeneous event types. Consumers must handle type dispatch.
+Subject name: `{topic-name}-value` / `{topic-name}-key`
 
-**`TopicRecordNameStrategy`:** subject name = `{topic-name}-{record-class-name}`. Scopes the record schema to a specific topic — the same record class used in two different topics has independent evolution histories per topic. Use when the same DTO is used across domains but must evolve independently.
+One schema subject per topic. All producers to a topic must write the same record type. Compatibility is enforced across all versions of that single subject.
+
+Use when: the topic carries a single, well-defined event type. Compatible with all stream processing engines — Kafka Streams, Flink, and ksqlDB.
+
+```properties
+# Producer config (default — no explicit setting required)
+value.subject.name.strategy=io.confluent.kafka.serializers.subject.TopicNameStrategy
+```
+
+**`RecordNameStrategy`**
+
+Subject name: fully qualified record class name (e.g., `com.hospital.vitals.HeartRate`)
+
+Multiple independent record types can share a single topic. Each record type has its own subject and its own evolution history — `HeartRate` and `BloodPressure` on the same topic evolve independently. Consumers must inspect the schema ID to determine the record type and dispatch accordingly.
+
+Use when: an event bus or heterogeneous topic must carry several unrelated event types, and each type's schema must evolve without affecting the others.
+
+**Critical constraint:** `RecordNameStrategy` is **incompatible with ksqlDB and Flink**. These engines cannot resolve which schema applies to an incoming record when multiple subjects exist for the same topic. If ksqlDB or Flink is downstream, use `TopicNameStrategy` with a union type instead (see below).
+
+**`TopicRecordNameStrategy`**
+
+Subject name: `{topic-name}-{record-class-name}`
+
+Scopes the record schema to a specific topic. The same record class used in two different topics has independent evolution histories per topic — `com.hospital.vitals.HeartRate` on `vitals-raw` and `vitals-enriched` are separate subjects that can diverge.
+
+Use when: the same DTO class is shared across domains but must evolve independently per topic context.
+
+**Same constraint as `RecordNameStrategy`:** incompatible with ksqlDB and Flink.
+
+## Strategy Decision and the Union Type Pattern
+
+| Strategy | Types per topic | ksqlDB/Flink compatible | Typical use case |
+|---|---|---|---|
+| `TopicNameStrategy` | One | Yes | Single event type per topic (most topics) |
+| `RecordNameStrategy` | Unbounded | No | Heterogeneous event bus, no SQL engines downstream |
+| `TopicRecordNameStrategy` | Bounded by usage | No | Shared DTOs with per-topic evolution |
+
+When a topic must carry multiple event types **and** a SQL engine (ksqlDB) or Flink is downstream, the solution is `TopicNameStrategy` with an **Avro union** or **Protobuf oneof** as the top-level schema:
+
+```json
+// Avro: single subject, multiple event shapes declared explicitly
+[
+  "com.hospital.vitals.HeartRate",
+  "com.hospital.vitals.BloodPressure",
+  "com.hospital.vitals.SpO2"
+]
+```
+
+The union makes the set of allowed types explicit and bounded. ksqlDB and Flink resolve the type from the union definition rather than from the subject namespace. The tradeoff: adding a new event type requires a schema change (and a compatibility check), which is typically the correct governance behaviour for a shared topic. See `06-Stream-Processing/ksqldb.md` for the ksqlDB-specific constraint.
 
 ## Registry Best Practices
 
