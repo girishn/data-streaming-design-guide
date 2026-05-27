@@ -1,4 +1,4 @@
-# Module 12 — Monitoring and Observability
+# Module 11 — Monitoring and Observability
 
 Metrics, alerting strategies, and tooling for Kafka consumer health, broker infrastructure, and Confluent Cloud managed services.
 

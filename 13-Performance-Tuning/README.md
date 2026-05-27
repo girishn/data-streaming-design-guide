@@ -1,4 +1,4 @@
-# Module 14 — Performance Tuning
+# Module 13 — Performance Tuning
 
 Configuration guidance for producer batching, consumer fetch behavior, and broker thread pools — with concrete tradeoff analysis for throughput vs latency decisions.
 
