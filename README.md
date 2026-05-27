@@ -206,5 +206,5 @@ Producer batching and compression tuning, consumer fetch configuration, broker t
 ### [14 — Case Studies](14-Case-Studies/README.md)
 Two production architectures: B2B logistics CX transformation with Salesforce CDC and Flink SQL, and financial e-commerce exactly-once payment ledger with hot SKU handling.
 
-- [logistics-cx-transformation.md](14-Case-Studies/logistics-cx-transformation.md)
+- [real-time-shipment-tracking.md](14-Case-Studies/real-time-shipment-tracking.md)
 - [financial-ecommerce-eos.md](14-Case-Studies/financial-ecommerce-eos.md)
