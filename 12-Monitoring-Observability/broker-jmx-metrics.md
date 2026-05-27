@@ -90,19 +90,19 @@ The Prometheus JMX Exporter runs as a Java agent on each broker and converts MBe
 ```yaml
 # jmx_exporter_config.yaml — key rules for Kafka broker
 rules:
-  - pattern: 'kafka.server<type=ReplicaManager, name=UnderReplicatedPartitions><>Value'
+  - pattern: 'kafka.server<type=ReplicaManager,name=UnderReplicatedPartitions><>Value'
     name: kafka_server_replicamanager_underreplicatedpartitions
     type: GAUGE
 
-  - pattern: 'kafka.controller<type=KafkaController, name=ActiveControllerCount><>Value'
+  - pattern: 'kafka.controller<type=KafkaController,name=ActiveControllerCount><>Value'
     name: kafka_controller_kafkacontroller_activecontrollercount
     type: GAUGE
 
-  - pattern: 'kafka.server<type=ReplicaManager, name=IsrShrinksPerSec><>Count'
+  - pattern: 'kafka.server<type=ReplicaManager,name=IsrShrinksPerSec><>Count'
     name: kafka_server_replicamanager_isrshrinks_total
     type: COUNTER
 
-  - pattern: 'kafka.server<type=KafkaRequestHandlerPool, name=RequestHandlerAvgIdlePercent><>Value'
+  - pattern: 'kafka.server<type=KafkaRequestHandlerPool,name=RequestHandlerAvgIdlePercent><>Value'
     name: kafka_server_kafkarequesthandlerpool_requesthandleravgidlepercent
     type: GAUGE
 ```

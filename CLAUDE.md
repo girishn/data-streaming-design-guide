@@ -10,7 +10,7 @@ There is no build system, test suite, or CI pipeline. All content is markdown.
 
 ## Module Structure
 
-Eleven numbered modules, each a self-contained directory:
+Fourteen numbered modules, each a self-contained directory:
 
 | # | Module | Status |
 |---|--------|--------|

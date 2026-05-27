@@ -22,7 +22,7 @@ partitions = max(target_throughput / per_partition_throughput, expected_max_cons
 
 **Consumer parallelism ceiling:** a consumer group can have at most one active consumer thread per partition. Adding consumers beyond the partition count produces idle instances. If you expect to scale a consumer group to 20 threads, the topic needs at least 20 partitions. This is the constraint that most often drives partition count higher than throughput alone would suggest.
 
-**Broker limits:** keep to 4,000 partitions per broker and 200,000 per cluster on ZooKeeper-based deployments. KRaft raises the cluster ceiling to 2 million — see `02-Broker-Infrastructure/kraft-mode.md`. The per-broker limit is driven by JVM heap (roughly 1–2 MB per partition replica) and OS file handle exhaustion.
+**Broker limits:** keep to 4,000 partitions per broker; KRaft supports up to 2 million partitions per cluster — see `02-Broker-Infrastructure/kraft-mode.md`. The per-broker limit is driven by JVM heap (roughly 1–2 MB per partition replica) and OS file handle exhaustion.
 
 **Partition count is append-only:** you can increase partitions on an existing topic but cannot decrease them. Increasing partitions after the topic has data breaks the `murmur2(key) mod N` mapping — keys that previously landed on partition X will now land on a different partition. If strict key-based ordering across the full topic history matters, changing partition count is a breaking change that requires topic recreation and consumer replay.
 

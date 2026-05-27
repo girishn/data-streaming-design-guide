@@ -31,7 +31,21 @@ dbField.setAccessible(true);
 RocksDB rocksDb = (RocksDB) dbField.get(stateStore);
 ```
 
-This is the established workaround for this limitation. The reflection target (`RocksDBStore.db`) has been stable across the 3.x release line; verify it on Streams version upgrades.
+This is the established workaround for this limitation. The reflection target (`RocksDBStore.db`) has been stable across the 3.x release line, but Java reflection against private fields breaks silently on upgrades — the field may be renamed or inlined without notice. Wrap this access in a startup smoke-test that validates the field is reachable before the application starts processing, so a Streams version upgrade that breaks the reflection fails fast at deploy time rather than at recovery time:
+
+```java
+// Smoke-test at application startup — call before streams.start()
+static void validateRocksDbReflection() {
+    try {
+        Field dbField = RocksDBStore.class.getDeclaredField("db");
+        dbField.setAccessible(true);
+    } catch (NoSuchFieldException e) {
+        throw new IllegalStateException(
+            "RocksDBStore.db field not found — Kafka Streams upgrade may have changed " +
+            "internal field names. Update the pre-seeding reflection access before running.", e);
+    }
+}
+```
 
 ### Step 2 — Create a Point-in-Time Snapshot
 

@@ -69,7 +69,7 @@ Configure consumers with the timestamp-based interceptor. At startup on the dest
 
 ```properties
 # Consumer config
-interceptor.classes=org.apache.kafka.connect.mirror.RemoteClusterUtils
+interceptor.classes=org.apache.kafka.connect.mirror.MirrorConsumerInterceptor
 ```
 
 Both approaches are at-least-once at failover — some records will be re-processed. Consumers must be idempotent.
