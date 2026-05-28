@@ -6,6 +6,8 @@ Enterprise-grade reference covering Apache Kafka and Confluent Platform architec
 
 Each module is self-contained. Navigate directly to the area matching your immediate problem: if you are debugging consumer lag, start in `11-Monitoring-Observability/consumer-lag.md`; if you are wiring a CDC pipeline, go to `10-Operational-Patterns/cdc-debezium.md`. Cross-references are explicit within files. No prescribed reading order — this is a reference, not a course.
 
+**Designing a new system from scratch?** Start with the [Decision Framework](decision-framework.md) — a phase-by-phase elimination flow that maps your requirements to forced choices and ruled-out options before you touch any module detail.
+
 ---
 
 ## Designing a System — Decision Sequence
