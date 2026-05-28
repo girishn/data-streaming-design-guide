@@ -8,6 +8,8 @@ Each module is self-contained. Navigate directly to the area matching your immed
 
 **Designing a new system from scratch?** Start with the [Decision Framework](decision-framework.md) — a phase-by-phase elimination flow that maps your requirements to forced choices and ruled-out options before you touch any module detail.
 
+**Facing an ambiguous problem or interview question?** See the [Streaming Design Approach](streaming-design-approach.md) — the meta-skill for getting from an unclear problem to a set of requirements worth running through the framework: discovery questions, elimination thinking, layer-by-layer structure, and how to handle open decisions.
+
 ---
 
 ## Designing a System — Decision Sequence
