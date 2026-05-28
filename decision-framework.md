@@ -139,6 +139,108 @@ flowchart TD
 
 ---
 
+## Dimension Elimination Map
+
+For each option on each dimension: what kills it, and what lets it survive. Use this when you have a specific option in mind and need to check whether any of your requirements rule it out — or when you want to understand the full elimination logic for a dimension before deciding.
+
+---
+
+### Infrastructure
+
+| Option | Eliminated when | Survives when |
+|---|---|---|
+| **OSS Kafka self-managed** | Cloud-managed is required; Confluent-only features needed (Cluster Linking, managed Flink, CC-native Tiered Storage); no ops team to manage brokers | Team can manage brokers; OSS feature set is sufficient; cost sensitivity rules out licensing |
+| **Confluent Platform self-managed** | Cloud-managed is required; no on-prem infrastructure budget; CC-only features are required | On-prem data residency mandated; Confluent features needed but not CC; existing data centre |
+| **Confluent Cloud** | Data residency must stay on-prem; airgapped network; regulatory prohibition on cloud storage; latency to cloud is unacceptable for the SLA | No ops team; cloud-native org; need managed Flink, Cluster Linking, or CC-native Tiered Storage |
+| **Hybrid** | "Cloud-managed only" hard constraint; "no on-prem infrastructure" constraint; complexity budget exhausted; single cluster topology mandated | Incremental migration from on-prem; some data must stay on-prem by regulation while other data can move to cloud |
+
+---
+
+### Delivery Guarantee
+
+| Option | Eliminated when | Survives when |
+|---|---|---|
+| **At-most-once** | Any data loss is unacceptable; financial, audit, or transactional data is involved; consumer cannot tolerate missing events | Metrics, telemetry, or log events where occasional loss is acceptable; fire-and-forget notifications |
+| **At-least-once** | Exactly-once is required and idempotent consumer design is not feasible; cross-partition atomicity required; duplicate processing causes irreversible business harm (double-credit, double-debit) | Consumer can handle duplicates; no cross-partition atomicity needed; deduplication logic is in place |
+| **Exactly-once** | Ultra-high throughput at the lowest possible latency is required and EOS overhead is measurable and unacceptable; use case does not involve state mutation; cross-partition atomicity is not needed | Payment events; financial transactions; audit records; any event where duplicates cause irreversible business harm |
+
+---
+
+### Data Erasure
+
+| Option | Eliminated when | Survives when |
+|---|---|---|
+| **No erasure needed** | Any personal data (PII) stored in events; GDPR, HIPAA, or any regulation requiring individual record deletion applies | Pure operational or technical data with no PII or sensitive fields |
+| **Tombstone records** | GDPR right-to-erasure applies — compaction does not guarantee removal timing; data must be immediately unreadable after erasure; multiple consumer groups with different lag exist on the topic | Key-based deduplication on non-PII data; log compaction for latest-value semantics; team owns all consumers and lag is bounded |
+| **Topic deletion** | Granular per-entity erasure required; topic is multi-tenant (deleting it removes other entities' data too); regulatory audit trail must be preserved for other records on the same topic | Ephemeral topics; dev/test; full topic lifecycle is owned by one team; all records on the topic belong to the same entity being erased |
+| **Crypto-shredding** | No KMS infrastructure available; cost of per-entity DEK management is prohibitive; data contains no PII or sensitive fields | GDPR right-to-erasure; HIPAA; any regulation requiring individual record erasure without destroying surrounding records |
+
+---
+
+### Disaster Recovery
+
+| Option | Eliminated when | Survives when |
+|---|---|---|
+| **No DR** | Any RPO < ∞ required; regulatory requirement for data durability; SLA commitment to end users; stateful stream processing state must survive regional failure | Dev/test environments; ephemeral streams where source can replay; no SLA commitment |
+| **MirrorMaker 2** | RPO < 5 minutes required; offset-preserving consumer group failover required; Confluent is the primary cluster (Cluster Linking is preferred when available); active-active writes required | OSS-only constraint (no Confluent license); RPO of minutes is acceptable; cross-cloud vendor replication where Cluster Linking is unavailable |
+| **Cluster Linking** | OSS-only constraint (Confluent license required); self-managed OSS Kafka without Confluent Platform; active-active bidirectional replication with conflict resolution required | RPO < 60s; Confluent Cloud or Platform in use; offset-exact consumer group failover required; byte-exact topic mirror required |
+| **Active-active** | Read-only DR is acceptable; event ordering must be globally total across regions; conflict resolution logic cannot be implemented for the domain; RPO = 0 is not required | Geo-distributed writes required; latency SLA mandates writes to local region; no global ordering guarantee needed; conflict resolution is tractable |
+
+---
+
+### Authentication
+
+| Option | Eliminated when | Survives when |
+|---|---|---|
+| **No auth / PLAINTEXT** | Any production deployment; shared network; regulatory compliance scope applies; audit trail of client identity required | Local development and isolated single-machine testing only |
+| **SASL/PLAIN shared credential** | Hundreds of distinct service identities; per-service audit trail required; credential rotation at scale is impractical; one compromised credential would expose all services | Small team; single trusted service; internal-only deployment; credential rotation is manageable |
+| **mTLS per service** | PKI infrastructure does not exist and there is no plan to build it; very high service churn makes certificate lifecycle impractical | Per-service identity required; PKI infrastructure exists; long-lived services; regulatory requirement for mutual authentication |
+| **OAuth/OIDC + CEL Identity Pools** | No identity provider (IdP) available; simple team structure where per-service certs are sufficient; CEL expression complexity is not justified | Fine-grained dynamic authorisation needed; IdP already exists (Okta, Azure AD, etc.); ACL logic must change without redeployment; federated identity across multiple orgs |
+
+---
+
+### Schema Governance
+
+| Option | Eliminated when | Survives when |
+|---|---|---|
+| **No Schema Registry** | Multiple independent producers or consumers exist; schema evolution is expected; consumer failures from schema mismatch are unacceptable; wire format must be auditable | Single producer and single consumer; prototype; no schema evolution planned; binary format managed entirely outside Kafka |
+| **NONE compatibility** | Multiple teams share the same topic; production shared platform; schema breakage would affect consumers the producer team does not own | Active development; single team owns all producers and consumers; topic is not shared; schema is stable and rarely changes |
+| **BACKWARD / FORWARD** | Hard requirement that any historical consumer version can read any data version (transitive guarantee needed); consumer lag is unbounded — consumers may be many versions behind | Known bounded consumer lag; team controls the release cycle of all producers and consumers; non-transitive guarantee is acceptable |
+| **FULL_TRANSITIVE + CI/CD gate** | Rapid iteration where the schema gate slows development velocity intolerably; single team owns all producers and consumers; topic is ephemeral or dev-only | Shared platform; multiple independent teams; consumer lag is unbounded; regulatory schema audit required; a breaking schema change already caused a production incident |
+
+---
+
+### Tenant Isolation
+
+| Option | Eliminated when | Survives when |
+|---|---|---|
+| **None — single team** | Multiple teams share the cluster; different SLA tiers exist across workloads (payment processing vs analytics); one team's misbehaviour can starve another team's consumers | Single team, single cluster, all workloads equally prioritised, all services trusted |
+| **Soft — observability only** | One team's misbehaviour can cause another team's SLA breach; regulatory requirement for resource isolation; platform SLA is committed to individual tenants | Teams are trusted; SLA differences are minor; enforcement overhead is not justified; monitoring is sufficient for the organisational culture |
+| **Hard — quotas per user principal + client-id** | Single team; all services equally trusted; overhead of quota management is not justified; no SLA differentiation across workloads | Multiple teams; different SLA tiers; shared platform with committed per-tenant SLAs; a noisy-neighbour incident already occurred |
+
+---
+
+### Retention
+
+| Option | Eliminated when | Survives when |
+|---|---|---|
+| **Short — hours to days** | Consumer lag may exceed retention window (slow consumers would lose events); audit or regulatory retention required; new consumers need to replay from beginning; event sourcing pattern in use | Pure operational events; consumers always current; no replay needed; source system can re-emit if needed |
+| **Medium — weeks to months** | Regulatory multi-year retention required; cost of local storage for this volume over months is prohibitive; new consumer onboarding requires full historical replay beyond months | Most operational use cases; no long-term regulatory requirement; consumer onboarding window fits within weeks |
+| **Long — years via tiered storage** | Topic uses compaction (`cleanup.policy=compact`) — tiered storage requires delete policy and the two are incompatible; tiered storage not available on chosen infrastructure; read latency of cold tier is unacceptable for the access pattern | Regulatory multi-year retention; audit logs; financial records; event sourcing with a long replay horizon; local storage cost for years of data is prohibitive |
+
+---
+
+### Processing Framework
+
+| Option | Eliminated when | Survives when |
+|---|---|---|
+| **None — consumers process directly** | Stateful aggregations required; windowing over event time required; stream-to-stream joins required; aggregation state must survive consumer restart | Simple filtering, routing, or enrichment; consumers process events independently; no cross-event state needed |
+| **ksqlDB** | `RecordNameStrategy` or `TopicRecordNameStrategy` is in use — ksqlDB cannot resolve schema; state scale exceeds single ksqlDB node; complex custom logic is not expressible in SQL; independent deployment and scaling of processing required | SQL-familiar team; simple aggregations, filters, and joins; rapid prototyping; team does not want to operate a separate processing cluster |
+| **Kafka Streams** | Processing must be independently deployed and scaled from the application; state scale exceeds single JVM; team is not JVM-based; cross-domain joins across unrelated topic owners | JVM team; co-deployment of processor with producer/consumer is acceptable; simple to medium state scale; tight coupling to Kafka lifecycle is acceptable |
+| **Apache Flink** | Simple aggregations only — Flink cluster overhead not justified; no Flink operational expertise; Kafka Streams is sufficient for the state size and topology | Large state (TBs of keyed state); complex event patterns (CEP); unified batch and stream processing; independent scaling of processing from Kafka; cross-domain joins; team already operates Flink |
+
+---
+
 ## Key Eliminations Reference
 
 | Requirement | Dimension | Eliminates | Mandates |
