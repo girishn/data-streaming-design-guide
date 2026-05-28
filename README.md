@@ -152,31 +152,36 @@ ISR mechanics and MISR configuration, full exactly-once semantic protocol from i
 ---
 
 ### [08 — Stream Governance](08-Stream-Governance/README.md)
-Schema Registry compatibility modes, broker-side schema validation, PII tagging and the crypto-shredding pattern for right-to-erasure, stream catalog, and stream lineage.
+Schema Registry compatibility modes, broker-side schema validation, PII tagging and the crypto-shredding pattern for right-to-erasure, stream catalog, stream lineage, CSFLE, and data contracts.
 
 - [schema-evolution.md](08-Stream-Governance/schema-evolution.md)
 - [broker-side-validation.md](08-Stream-Governance/broker-side-validation.md)
 - [pii-tracking.md](08-Stream-Governance/pii-tracking.md)
 - [stream-catalog.md](08-Stream-Governance/stream-catalog.md)
 - [stream-lineage.md](08-Stream-Governance/stream-lineage.md)
+- [csfle.md](08-Stream-Governance/csfle.md)
+- [data-contracts.md](08-Stream-Governance/data-contracts.md)
 
 ---
 
 ### [09 — Security Architecture](09-Security-Architecture/README.md)
-mTLS and OAuth/OIDC authentication flows, Confluent Cloud Identity Pools with CEL expressions, multi-protocol listener migration.
+mTLS and OAuth/OIDC authentication flows, Confluent Cloud Identity Pools with CEL expressions, multi-protocol listener migration, RBAC role taxonomy and bindings, and private networking for Dedicated clusters.
 
 - [mtls-oauth.md](09-Security-Architecture/mtls-oauth.md)
 - [cel-identity-pools.md](09-Security-Architecture/cel-identity-pools.md)
 - [multi-protocol-auth.md](09-Security-Architecture/multi-protocol-auth.md)
+- [rbac.md](09-Security-Architecture/rbac.md)
+- [private-networking.md](09-Security-Architecture/private-networking.md)
 
 ---
 
 ### [10 — Operational Patterns](10-Operational-Patterns/README.md)
-Transactional outbox for dual-write safety, Debezium CDC configuration, and RocksDB state pre-seeding from S3 for fast cold starts.
+Transactional outbox for dual-write safety, Debezium CDC configuration, RocksDB state pre-seeding from S3 for fast cold starts, and GitOps/Terraform self-service topic management.
 
 - [transactional-outbox.md](10-Operational-Patterns/transactional-outbox.md)
 - [cdc-debezium.md](10-Operational-Patterns/cdc-debezium.md)
 - [rocksdb-s3-preseeding.md](10-Operational-Patterns/rocksdb-s3-preseeding.md)
+- [gitops-terraform.md](10-Operational-Patterns/gitops-terraform.md)
 
 ---
 
@@ -209,7 +214,9 @@ Producer batching and compression tuning, consumer fetch configuration, broker t
 ---
 
 ### [14 — Case Studies](14-Case-Studies/README.md)
-Two production architectures: B2B logistics CX transformation with Salesforce CDC and Flink SQL, and financial e-commerce exactly-once payment ledger with hot SKU handling.
+Production architecture walkthroughs: B2B logistics CX transformation, financial e-commerce exactly-once payment ledger, enterprise banking platform design via the decision framework, and enterprise retail platform validation.
 
 - [real-time-shipment-tracking.md](14-Case-Studies/real-time-shipment-tracking.md)
 - [financial-ecommerce-eos.md](14-Case-Studies/financial-ecommerce-eos.md)
+- [banking-platform-design.md](14-Case-Studies/banking-platform-design.md)
+- [retail-platform-design.md](14-Case-Studies/retail-platform-design.md)

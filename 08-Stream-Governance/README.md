@@ -9,3 +9,5 @@ Schema evolution rules, broker-side enforcement, PII compliance patterns, and th
 - [pii-tracking.md](pii-tracking.md) — Field-level PII tagging, the crypto-shredding pattern for right-to-erasure, KMS integration, and limitations.
 - [stream-catalog.md](stream-catalog.md) — Data discovery, business metadata, tag-based governance policies, and the distinction from Schema Registry.
 - [stream-lineage.md](stream-lineage.md) — End-to-end data flow visualization, automated map construction, engineering use cases, and limitations.
+- [csfle.md](csfle.md) — Client-Side Field Level Encryption: EncryptionExecutor and Rules Engine integration, KMS providers, authorised consumer pattern, key rotation, and the precise distinction from crypto-shredding.
+- [data-contracts.md](data-contracts.md) — Data Contracts beyond schema compatibility: CEL data quality rules, JSONata schema migration rules for breaking changes, CSFLE mandate via rules, DLQ routing, and ownership metadata.
