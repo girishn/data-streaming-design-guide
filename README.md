@@ -185,6 +185,9 @@ Transactional outbox for dual-write safety, Debezium CDC configuration, RocksDB 
 - [rocksdb-s3-preseeding.md](10-Operational-Patterns/rocksdb-s3-preseeding.md)
 - [gitops-terraform.md](10-Operational-Patterns/gitops-terraform.md)
 - [consumer-onboarding.md](10-Operational-Patterns/consumer-onboarding.md)
+- [producer-onboarding.md](10-Operational-Patterns/producer-onboarding.md)
+- [connector-onboarding.md](10-Operational-Patterns/connector-onboarding.md)
+- [platform-automation.md](10-Operational-Patterns/platform-automation.md)
 
 ---
 
