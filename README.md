@@ -198,6 +198,7 @@ Consumer lag measurement and alerting strategy, broker JMX metrics and thread po
 - [consumer-lag.md](11-Monitoring-Observability/consumer-lag.md)
 - [broker-jmx-metrics.md](11-Monitoring-Observability/broker-jmx-metrics.md)
 - [confluent-cloud-metrics-api.md](11-Monitoring-Observability/confluent-cloud-metrics-api.md)
+- [datadog-integration.md](11-Monitoring-Observability/datadog-integration.md)
 
 ---
 
