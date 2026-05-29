@@ -49,6 +49,26 @@ Without broker-side validation, this record is permanently in the log. Every con
 
 With broker-side validation enabled, the bad record is rejected at write time. The producer receives an error; the log remains clean; consumers are never exposed to the malformed record.
 
+## Observability Model — Producer-Side, Not Consumer-Side
+
+This is the critical operational distinction from the DLQ pattern.
+
+With a Dead Letter Queue, a bad record enters the log and is routed to the DLQ topic. The consumer can inspect it, understand why it failed, and remediate. The signal is consumer-side.
+
+With broker-side validation, the record is rejected before it enters the log. The producer receives a hard write error. The record is permanently discarded — no DLQ entry, no error message in the consumer, no trace. From the consumer's perspective the message simply never existed.
+
+| Mechanism | Bad record fate | Producer signal | Consumer signal |
+|---|---|---|---|
+| DLQ (application-layer) | Enters log → DLQ topic | No error | DLQ depth metric, inspectable record |
+| Broker-side validation | Rejected before log entry | Hard write exception | None — record never existed |
+
+**Consequence:** broker-side validation must be paired with **producer write error rate alerting**. If a producer is sending records that fail schema validation, the only signal is the producer's exception and the broker's rejection metric. Consumers have no visibility. Without producer error monitoring, a schema misconfiguration that silently rejects thousands of records per minute will not surface until a consumer notices missing data — which may be hours later.
+
+**Monitor on the producer side:**
+- Producer `record-error-rate` JMX metric — increases on write rejection
+- Confluent Cloud Metrics API: `kafka.producer.record_error_rate` per producer principal
+- Alert threshold: any non-zero sustained error rate on a production topic
+
 ## Limitations
 
 **No payload introspection:** the broker validates that the schema ID exists and is assigned to the topic. It does not decode or validate the payload against the schema. A producer that correctly embeds a valid schema ID but serialises the payload incorrectly (wrong field values, wrong Avro encoding) will pass validation. Payload correctness remains a client-side responsibility.

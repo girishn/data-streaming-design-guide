@@ -17,6 +17,8 @@ The consuming team must demonstrate that they can deserialise the topic's schema
 - Subject naming strategy matches the topic (`TopicNameStrategy` is the default; `RecordNameStrategy` or `TopicRecordNameStrategy` require explicit justification)
 - Broker-side schema validation is confirmed active on the topic — consumers will not receive records with unregistered schema IDs
 
+**Observability trade-off:** broker-side validation rejects the bad record before it enters the log. The producer receives a hard write error — not silent from the producer's perspective. But from the consumer's perspective the record simply never exists: no DLQ entry, no error, no trace. A consumer debugging a missing event has nothing to find. This is the opposite of the DLQ model, where the bad record is preserved for inspection. Broker-side validation must be paired with **producer write error rate alerting** — without it, rejections are operationally invisible. Confirm with the topic owner that producer error monitoring is active before treating this gate as closed.
+
 **Why:** the first schema evolution on a live topic will expose any consumer that skipped this gate. Silent deserialization failures are the most common cause of unexplained consumer lag growth.
 
 ---
