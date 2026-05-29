@@ -296,6 +296,64 @@ spec:
         objectType: "ssmparameter"
 ```
 
+## ArgoCD Scope — Kubernetes Only, Not Confluent Cloud
+
+This is a common source of confusion in platform design. ArgoCD is a Kubernetes GitOps controller — it watches Git for Kubernetes manifests and continuously reconciles them to a cluster. It does not understand Confluent Cloud resources natively.
+
+**What ArgoCD manages (continuous reconciliation):**
+- CFK `KafkaConnector` CRDs on EKS — ArgoCD detects drift and auto-corrects
+- Consumer and producer `Deployment` manifests on EKS
+- `SecretProviderClass` and other Kubernetes resources
+
+**What ArgoCD does NOT manage:**
+- Confluent Cloud topics, ACLs, schemas, service accounts, quotas — these are Terraform resources applied via the CI/CD pipeline on PR merge, not continuously reconciled
+
+The distinction matters operationally: if someone manually changes a topic config via the Confluent Console, Terraform will not auto-correct it. The drift is only detected the next time `terraform plan` runs in the pipeline.
+
+```
+Confluent Cloud resources          Kubernetes / EKS resources
+(topics, ACLs, schemas)            (CFK CRDs, Deployments)
+         │                                   │
+    Terraform                            ArgoCD
+    + CI pipeline                        (continuous)
+    (on PR merge)                              │
+         │                                    ▼
+         ▼                            Auto-corrects drift
+    One-shot apply                     from desired state
+```
+
+### Continuous Reconciliation for Confluent Cloud — Crossplane
+
+**Crossplane** is the option if continuous drift correction for Confluent Cloud resources is required. It runs as a Kubernetes controller, exposes Confluent Cloud resources as Kubernetes CRDs, and reconciles them continuously — the same model ArgoCD uses for native K8s manifests.
+
+```yaml
+# Crossplane — Confluent Cloud topic as a Kubernetes CRD
+apiVersion: kafka.confluent.crossplane.io/v1alpha1
+kind: Topic
+metadata:
+  name: payments-initiated-v1
+spec:
+  forProvider:
+    name: payments.initiated.v1
+    partitionsCount: 12
+    config:
+      cleanup.policy: delete
+      retention.ms: "604800000"
+  providerConfigRef:
+    name: confluent-cloud-provider
+```
+
+ArgoCD syncs this CRD to EKS → Crossplane controller picks it up → Crossplane calls the Confluent Cloud API → drift auto-corrected if someone changes the topic manually.
+
+**Trade-off:**
+
+| Approach | Reconciliation | Operational cost | Drift detection |
+|---|---|---|---|
+| Terraform + CI | On PR merge only | Low — no extra controller | Manual `terraform plan` |
+| Crossplane + ArgoCD | Continuous | High — Crossplane running in EKS | Automatic |
+
+Crossplane is worth the overhead when many teams make frequent config changes and auto-correction of manual drift matters (e.g., regulated environments where Console access must be locked down). For most platforms, Terraform + CI pipeline on PR merge is sufficient — drift is rare when Console access is RBAC-restricted to the platform team.
+
 ## What GitOps Solves vs What It Does Not Solve
 
 **Solves:**
