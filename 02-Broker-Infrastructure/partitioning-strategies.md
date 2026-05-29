@@ -68,3 +68,48 @@ The risk is hot partitions: if your key space is unevenly distributed — a smal
 **Choosing:** if downstream consumers need to process all events for an entity in order (joins, state machines, aggregations by key), use key-based partitioning and design keys to be as uniformly distributed as possible. If ordering within a key is irrelevant and throughput matters more, use null keys and let the Sticky Partitioner distribute load.
 
 Custom partitioners are supported but rarely necessary — the common alternative to the default is routing by a compound key (e.g., `tenant_id + entity_id`) to improve distribution while preserving per-entity ordering.
+
+## Concurrent Producer Ordering
+
+Key-based partitioning guarantees that all records for a given key land on the same partition. It does not guarantee ordering when multiple producer instances produce to that partition concurrently.
+
+The problem: two application instances both produce events for `customer_id=12345`. Both use the same key, so both target the same partition. Ordering within the partition is determined by arrival time at the leader broker — network latency, thread scheduling, and GC pauses on either instance can cause their messages to arrive out of sequence regardless of the logical event order.
+
+**Solution 1 — Kafka Streams (preferred for stateful processing)**
+Kafka Streams assigns exactly one stream task per partition. Only one thread ever produces to a given output partition for a given key. Concurrent producer interference is structurally eliminated. See `06-Stream-Processing/kafka-streams-vs-flink.md`.
+
+**Solution 2 — Application-level routing (consistent hashing)**
+Route processing for a given key to a designated instance before producing. All loyalty engine pods for `customer_id=12345` are routed to the same pod via a consistent hash ring at the load balancer or application router layer. That pod is the sole producer for that key's output partition.
+
+**Solution 3 — Optimistic concurrency in the sink**
+Include a sequence number or version field in each event. The consumer's sink (e.g., database) rejects writes where the incoming version is older than the stored version. Ordering at the Kafka layer becomes irrelevant because the sink enforces correct final state. Requires the producer to maintain a monotonic sequence per key.
+
+**Solution 4 — Idempotent producer with sequence numbers**
+`enable.idempotence=true` assigns a Producer ID (PID) and incrementing sequence number to every batch. The leader broker rejects a batch whose sequence number is not exactly one greater than the last written — preventing reordering caused by producer retries. This protects against retry-induced reordering from a single producer instance but does not protect against concurrent writes from two distinct instances (each has its own PID and sequence space).
+
+**Decision:** if per-key ordering across all events is a hard requirement (state machines, ledgers, loyalty calculations), use Kafka Streams or application-level routing to ensure a single logical producer per key. Idempotent producers are a durability guard, not a concurrency ordering guard.
+
+## Live Repartitioning — Blue-Green Migration
+
+Increasing partition count on a live topic is irreversible and breaks per-key ordering. The `murmur2(key) mod N` mapping changes — a customer that hashed to partition 7 with 12 partitions hashes to a different partition with 48 partitions. Events for the same key now exist across two partitions with no ordering relationship between them.
+
+The safe pattern is blue-green topic migration:
+
+**Step 1 — Create the green topic**
+Provision a new topic with the target partition count. Match all configuration: retention, replication factor, `min.insync.replicas`, cleanup policy. Use Terraform to ensure parity. Register schemas in Schema Registry under the new subject name.
+
+**Step 2 — Dual-write**
+Configure producers to write to both the original (blue) topic and the new (green) topic simultaneously. Alternatively use MirrorMaker 2 or Cluster Linking to mirror blue → green. Dual-write doubles write load on the cluster during the transition window — size accordingly.
+
+**Step 3 — Drain and cut over consumers**
+Let existing consumers finish processing all in-flight events from the blue topic. Once blue consumer lag reaches zero, redirect consumer groups to the green topic. Use MM2 offset translation or Cluster Linking consumer offset sync to avoid replaying from offset 0 on the green topic.
+
+**Step 4 — Decommission the blue topic**
+Stop dual-production. Delete the blue topic after all consumers confirm clean operation on green.
+
+**Operational considerations:**
+- The idempotency guard in downstream consumers handles duplicates from the dual-write window
+- Use `CooperativeStickyAssignor` — consumer group rebalance triggered by green topic subscription is incremental, not stop-the-world
+- Monitor consumer lag on both topics during transition; alert on lag growth on the green topic separately from the blue
+- Stateful Kafka Streams applications (RocksDB state stores) may face recovery lag when switching topics — see `10-Operational-Patterns/rocksdb-s3-preseeding.md` for pre-seeding to accelerate recovery
+- Document that the key-to-partition mapping has changed; any downstream system that hardcodes partition numbers must be updated

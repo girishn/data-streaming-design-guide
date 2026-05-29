@@ -5,5 +5,5 @@ Broker internals for production engineers: KRaft mode as the replacement for Zoo
 ## Files
 
 - [kraft-mode.md](kraft-mode.md) — KRaft architecture, ZooKeeper removal, controller quorum, failover mechanics, and migration requirements.
-- [partitioning-strategies.md](partitioning-strategies.md) — Partition count sizing, replication factor decisions, log compaction vs retention, and partitioning strategy trade-offs.
+- [partitioning-strategies.md](partitioning-strategies.md) — Partition count sizing, replication factor decisions, log compaction vs retention, partitioning strategy trade-offs, concurrent producer ordering problem and solutions, and blue-green migration for live repartitioning.
 - [tiered-storage.md](tiered-storage.md) — Hot/cold tier architecture, hotset configuration, object storage backends, OSS Kafka KIP-405 vs Confluent Platform, and when to use tiered storage for regulatory retention requirements.

@@ -175,6 +175,68 @@ Consume path:
 
 Because enforcement is client-side, a producer without the Schema Registry client library (or with `auto.register.schemas=true`) bypasses rule evaluation. Broker-side schema validation (`08-Stream-Governance/broker-side-validation.md`) blocks records with an unregistered schema ID but cannot evaluate CEL rules or encrypt fields — those remain client-side responsibilities.
 
+## Catching Semantic Breaks — What Compatibility Checks Miss
+
+Schema Registry compatibility checks catch **structural breaks** — field removals, type changes, incompatible renames. They do not catch **semantic breaks** — changes that are structurally valid but logically wrong for a downstream consumer.
+
+**Example:** a producer team renames `order_total` to `total_amount`. They add `total_amount` as a new optional field (backward-compatible addition) and stop populating `order_total`. The compatibility check passes. The schema is registered. The CI/CD gate passes. But the loyalty engine is reading `order_total` and now receives `null` for every event — silently miscalculating points for every customer.
+
+**CEL quality rules are the Confluent-native defence:**
+
+A consumer can declare a quality rule on the topic contract that asserts `order_total` is always present and positive:
+
+```json
+{
+  "name": "validateOrderTotal",
+  "kind": "CONDITION",
+  "type": "CEL",
+  "mode": "WRITE",
+  "expr": "message.orderTotal > 0",
+  "onFailure": "DLQ"
+}
+```
+
+When the producer stops populating `order_total`, this rule fails at produce time — the record is routed to DLQ and the producer is notified before the event reaches any consumer.
+
+**CI/CD integration — Schema Registry Maven/Gradle plugins:**
+
+The Schema Registry Maven and Gradle plugins allow teams to pre-register and validate schemas against configured compatibility levels and contract rules during the build phase:
+
+```xml
+<!-- Maven plugin — schema compatibility gate in CI -->
+<plugin>
+  <groupId>io.confluent</groupId>
+  <artifactId>kafka-schema-registry-maven-plugin</artifactId>
+  <configuration>
+    <schemaRegistryUrls>
+      <param>https://<schema-registry-url></param>
+    </schemaRegistryUrls>
+    <subjects>
+      <orders-value>src/main/avro/order.avsc</orders-value>
+    </subjects>
+  </configuration>
+  <executions>
+    <execution>
+      <goals><goal>test-compatibility</goal></goals>
+    </execution>
+  </executions>
+</plugin>
+```
+
+The build fails if the schema is structurally incompatible. Pair this with a CEL rule registry check to gate semantic contract violations before any schema reaches the Schema Registry.
+
+**Structural vs semantic break — what each defence catches:**
+
+| Break type | Example | Compatibility check | CEL quality rule |
+|---|---|---|---|
+| Field removed | `order_total` deleted | Caught — BACKWARD fails | Caught — rule evaluates null |
+| Type changed | `int` → `string` | Caught — type mismatch | Caught if value rule exists |
+| Field renamed (compat-safe add) | `order_total` → `total_amount`, old field still optional | Not caught | Caught — old field rule fails |
+| Value semantics changed | `status` values change from `OPEN/CLOSED` to `ACTIVE/INACTIVE` | Not caught | Caught if enum rule exists |
+| Required field silently zeroed | `discount_pct` always 0.0 | Not caught | Caught if rule asserts range |
+
+CEL rules require the contract author to anticipate which fields matter semantically to consumers. They are not a substitute for consumer-driven contract testing (where consuming teams explicitly declare their expectations) — but they are the mechanism available within Confluent's stack.
+
 ## Data Contracts vs Schema Compatibility — Decision
 
 | Concern | Schema compatibility | Data contracts |
