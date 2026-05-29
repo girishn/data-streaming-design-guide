@@ -79,6 +79,79 @@ With broker-side validation, the record is rejected before it enters the log. Th
 
 **Does not prevent wrong-but-valid schema IDs:** if a producer registers a schema ID from a different topic's subject and writes records using it, the validation will pass if the ID itself is a registered schema. The assignment check is against the subject derived from the topic name and the configured naming strategy — misconfigured RecordNameStrategy subjects can create gaps. See the subject interaction section below.
 
+## Decision — Broker-Side Validation vs Consumer DLQ vs Both
+
+These are not alternatives — they guard against different failure types. A mature platform runs all three layers simultaneously.
+
+| Layer | Mechanism | Failure type | Record preserved? |
+|---|---|---|---|
+| 1 — Broker | Broker-side schema ID validation | Wrong wire format, unregistered schema ID | No — rejected before log |
+| 2 — Serializer | CEL quality rules (Data Contracts) | Semantic violations — bad values, invalid enums, missing fields | Yes — routed to DLQ |
+| 3 — Consumer | Consumer-side DLQ | Transient failures, downstream unavailability, business logic errors | Yes — routed to DLQ |
+
+### Use Broker-Side Validation When
+
+**Compliance and audit log topics** — records that enter the log may be legally significant. Kafka has no delete-record guarantee at scale. A malformed audit record that enters the log is harder to remediate than one that never entered. Reject at the gate.
+
+**Compacted topics** — a bad record with a valid key becomes the latest compacted state for that key indefinitely. A malformed payload or accidental tombstone corrupts the reference state for every consumer until a correct record overwrites it. Broker-side validation prevents log corruption on compacted topics.
+
+**High fan-out topics** — one bad record without broker-side validation produces N DLQ entries, N alerts, and N investigations — one per consuming team. Reject once at the broker instead.
+
+**Multi-tenant platform topics** — one team's misconfigured producer should not pollute a shared topic that other teams depend on. Broker-side validation protects all consumers from one bad producer.
+
+**ML and analytics feeder topics** — bad records in training data cause silent model degradation for days or weeks. Hard rejection at produce time surfaces the issue immediately at the source.
+
+### Use Consumer-Side DLQ When
+
+**Legacy or external producers** — you cannot guarantee the Confluent Schema Registry serialiser is used. The producer may not embed a schema ID at all. Broker-side validation would reject everything; consumer-side DLQ gives visibility into what arrived.
+
+**Semantic failures** — broker-side validation has no payload introspection. A record with a valid schema ID but `order_total = -500` or an undeclared enum value passes broker-side validation. CEL quality rules (layer 2) or consumer DLQ (layer 3) must catch these.
+
+**Transient processing failures** — the record is valid. The consumer's downstream database is temporarily unavailable. This is a consumer failure, not a data quality failure. DLQ + exponential backoff + re-drive is the correct pattern.
+
+**Schema evolution rollout windows** — producer is on v3, consumers are on v1. Migration rules handle the transform. During the cutover window, consumers may encounter records they cannot yet process. DLQ with re-drive after consumer upgrade is the recovery path.
+
+**Records requiring inspection and remediation** — DLQ preserves the bad record with full headers: failure reason, source topic, partition, offset. An ops team can inspect, fix, and re-produce. Broker-side rejection discards the record permanently.
+
+**Basic or Standard Confluent Cloud tiers** — broker-side validation requires Dedicated. Consumer DLQ is the only structural option on lower tiers.
+
+**Early-stage topics** — hard rejections during development slow iteration. DLQ gives visibility into what producers are actually sending before schema contracts are locked.
+
+### Decision Flow
+
+```
+What kind of failure am I defending against?
+              │
+              ▼
+Wrong wire format / unregistered schema ID?
+         Yes ─► Broker-side validation
+              │
+              ▼
+Valid schema ID but bad field values / business rule violation?
+         Yes ─► CEL quality rules (Data Contracts) → DLQ
+              │
+              ▼
+Valid record, consumer processing failed?
+         Yes ─► Consumer-side DLQ + retry
+```
+
+### When to Use Only Consumer DLQ (No Broker-Side Validation)
+
+- Producer is a legacy system, external partner, or IoT device not using the Confluent SR client
+- Topic intentionally carries mixed formats (union schema, multiple event types)
+- Cluster is Basic or Standard tier
+- Topic is in active development — hard rejections impede iteration; DLQ gives faster feedback
+
+### When to Layer All Three
+
+Standard recommendation for production platform topics with multiple consumers:
+
+1. **Broker-side validation on** — structural gate, keeps the log clean
+2. **CEL quality rules registered** — semantic gate, violations routed to DLQ for inspection
+3. **Consumer DLQ configured** — transient and business logic failures handled at the consumer
+
+Each layer has a distinct responsibility. None replaces the other.
+
 ## Subject Context Interaction
 
 The broker's validation behaviour depends on the subject naming strategy configured on the producer:
