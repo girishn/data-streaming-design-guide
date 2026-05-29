@@ -12,12 +12,12 @@ The producer team owns the topic specification. The platform team validates it a
 
 **Checklist:**
 - Topic name follows the platform naming convention: `{domain}.{entity}.{event-type}.v{N}` (e.g., `payments.transaction.initiated.v1`). The name drives ACL derivation — non-compliant names break automation
-- Partition count justified against throughput target and expected max consumer concurrency — not defaulted. Formula: `max(target_throughput / per_partition_throughput, expected_max_consumers)`
+- Partition count justified against throughput target and expected max consumer concurrency — not defaulted. See `02-Broker-Infrastructure/partitioning-strategies.md` for sizing formula and practical bands
 - Retention policy declared: `delete` for event streams, `compact` for latest-value state tables. Blanket `delete` on reference data topics is a design error
 - Replication factor = 3 with `min.insync.replicas=2` — non-negotiable for production
 - Topic configuration reviewed for edge cases: `max.message.bytes` if payloads are large, `message.timestamp.type` if event-time ordering matters downstream
 
-**Why:** partition count and key design are irreversible decisions on a live topic. See `02-Broker-Infrastructure/partitioning-strategies.md` for the blue-green migration cost of getting this wrong.
+**Why:** partition count and key design are irreversible decisions on a live topic. Changing partition count post-launch requires a full blue-green topic migration — see `10-Operational-Patterns/blue-green-topic-migration.md`.
 
 ---
 

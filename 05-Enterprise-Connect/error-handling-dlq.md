@@ -86,3 +86,10 @@ curl http://connect-host:8083/connectors/my-connector/status
 | `offset-commit-failure-percentage` | > 0 (offset tracking degraded) |
 
 **DLQ receive rate as a data quality signal:** a sudden spike in DLQ message rate that correlates with a schema change or a new data source deployment indicates a compatibility regression. Alert on DLQ topic `MessagesInPerSec` exceeding a baseline threshold — this catches issues before they propagate to downstream consumers.
+
+## Cross-References
+
+- DLQ as a mandatory onboarding gate for consumers — [10-Operational-Patterns/consumer-onboarding.md](../10-Operational-Patterns/consumer-onboarding.md)
+- DLQ as a mandatory onboarding gate for connectors — [10-Operational-Patterns/connector-onboarding.md](../10-Operational-Patterns/connector-onboarding.md)
+- Broker-side validation vs DLQ decision — [08-Stream-Governance/broker-side-validation.md](../08-Stream-Governance/broker-side-validation.md)
+- CEL quality rules routing violations to DLQ — [08-Stream-Governance/data-contracts.md](../08-Stream-Governance/data-contracts.md)

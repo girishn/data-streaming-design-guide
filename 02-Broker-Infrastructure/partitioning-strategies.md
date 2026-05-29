@@ -91,25 +91,8 @@ Include a sequence number or version field in each event. The consumer's sink (e
 
 ## Live Repartitioning — Blue-Green Migration
 
-Increasing partition count on a live topic is irreversible and breaks per-key ordering. The `murmur2(key) mod N` mapping changes — a customer that hashed to partition 7 with 12 partitions hashes to a different partition with 48 partitions. Events for the same key now exist across two partitions with no ordering relationship between them.
+Increasing partition count on a live topic is irreversible and breaks per-key ordering. The `murmur2(key) mod N` mapping changes — a customer that hashed to partition 7 with 12 partitions hashes to a different partition with 48. Events for the same key exist across two partitions with no ordering relationship between them.
 
-The safe pattern is blue-green topic migration:
+The safe pattern is blue-green topic migration: create a new topic (green) with the target partition count, mirror or dual-write data from the original (blue) into it, drain consumers from blue to zero lag, translate offsets, cut consumers over to green, then decommission blue.
 
-**Step 1 — Create the green topic**
-Provision a new topic with the target partition count. Match all configuration: retention, replication factor, `min.insync.replicas`, cleanup policy. Use Terraform to ensure parity. Register schemas in Schema Registry under the new subject name.
-
-**Step 2 — Dual-write**
-Configure producers to write to both the original (blue) topic and the new (green) topic simultaneously. Alternatively use MirrorMaker 2 or Cluster Linking to mirror blue → green. Dual-write doubles write load on the cluster during the transition window — size accordingly.
-
-**Step 3 — Drain and cut over consumers**
-Let existing consumers finish processing all in-flight events from the blue topic. Once blue consumer lag reaches zero, redirect consumer groups to the green topic. Use MM2 offset translation or Cluster Linking consumer offset sync to avoid replaying from offset 0 on the green topic.
-
-**Step 4 — Decommission the blue topic**
-Stop dual-production. Delete the blue topic after all consumers confirm clean operation on green.
-
-**Operational considerations:**
-- The idempotency guard in downstream consumers handles duplicates from the dual-write window
-- Use `CooperativeStickyAssignor` — consumer group rebalance triggered by green topic subscription is incremental, not stop-the-world
-- Monitor consumer lag on both topics during transition; alert on lag growth on the green topic separately from the blue
-- Stateful Kafka Streams applications (RocksDB state stores) may face recovery lag when switching topics — see `10-Operational-Patterns/rocksdb-s3-preseeding.md` for pre-seeding to accelerate recovery
-- Document that the key-to-partition mapping has changed; any downstream system that hardcodes partition numbers must be updated
+For the full operational procedure — state machine (`CREATED → DUAL_WRITE → DRAINING → CUTOVER → DECOMMISSIONED`), Cluster Linking vs MirrorMaker 2 vs dual-write comparison, offset translation, rollback gates, and platform team responsibilities — see `10-Operational-Patterns/blue-green-topic-migration.md`.

@@ -161,3 +161,11 @@ The broker's validation behaviour depends on the subject naming strategy configu
 **`RecordNameStrategy`:** the broker only searches the **default schema context**. If the producer registered the schema in a named context (e.g., `:.internal:`) rather than the default context, the validation fails even if the schema ID is technically valid. Producers using RecordNameStrategy must ensure schemas are registered in the default context, or validation will reject valid records.
 
 Verify context alignment when enabling validation on topics that use RecordNameStrategy — misalignment causes production write failures that look identical to genuinely invalid schema IDs.
+
+## Cross-References
+
+- Broker-side validation vs consumer DLQ decision — [05-Enterprise-Connect/error-handling-dlq.md](../05-Enterprise-Connect/error-handling-dlq.md)
+- CEL quality rules (semantic layer, complements structural validation) — [08-Stream-Governance/data-contracts.md](data-contracts.md)
+- Schema compatibility modes — [08-Stream-Governance/schema-evolution.md](schema-evolution.md)
+- Broker-side validation as a producer onboarding gate — [10-Operational-Patterns/producer-onboarding.md](../10-Operational-Patterns/producer-onboarding.md)
+- Consumer onboarding observability trade-off — [10-Operational-Patterns/consumer-onboarding.md](../10-Operational-Patterns/consumer-onboarding.md)

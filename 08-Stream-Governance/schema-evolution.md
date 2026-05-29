@@ -153,3 +153,10 @@ Auto-registration allows any producer to push a new schema version on first use.
 **Set compatibility mode per subject, not just globally:** the global default is a fallback. High-stakes topics (payment events, audit logs) should have FULL_TRANSITIVE set explicitly so the constraint is not accidentally overridden by a global config change.
 
 **Prefer BACKWARD as the default:** most distributed microservice evolution follows the pattern of adding capabilities while maintaining existing consumers. BACKWARD supports this naturally and the upgrade order (consumers first) is operationally safer than FORWARD (producers first — producing data consumers cannot yet read).
+
+## Cross-References
+
+- Semantic guarantees beyond structural compatibility (CEL quality rules, migration rules, DLQ routing) — [08-Stream-Governance/data-contracts.md](data-contracts.md)
+- Broker-side schema ID enforcement — [08-Stream-Governance/broker-side-validation.md](broker-side-validation.md)
+- Schema CI/CD gate via Maven/Gradle plugin — [08-Stream-Governance/data-contracts.md](data-contracts.md)
+- Schema registration via GitOps/Terraform — [10-Operational-Patterns/gitops-terraform.md](../10-Operational-Patterns/gitops-terraform.md)
