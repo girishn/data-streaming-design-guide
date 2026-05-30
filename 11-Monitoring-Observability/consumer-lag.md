@@ -70,6 +70,62 @@ Alert when a consumer group has committed offsets (i.e., has been active) but `r
 **Alert 4 — Partition-level lag outlier:**
 Alert when a single partition's lag is more than 10x the median lag across all partitions in the group. This catches poison-pill stuck consumers while other partitions in the group appear healthy at the aggregate level.
 
+## Cross-Pipeline Lag — Shared Cause Diagnosis
+
+When multiple unrelated consumer groups show lag growth simultaneously and cluster health metrics are clean (no offline partitions, no ISR shrinks, no under-replicated partitions), the root cause is almost never broker-side. A clean cluster with multiple affected pipelines is a correlation signal — investigate shared causes, not individual pipelines.
+
+**The heuristic:** if the cluster dashboard is healthy, the problem is above the broker layer — application bottlenecks, resource limits, or group coordination events.
+
+### Shared Downstream Dependency
+
+Multiple consumer groups writing to the same database, API, or external sink. The sink became unavailable or degraded; consumer threads are blocked waiting for write acknowledgement.
+
+- **Key metric:** `records-consumed-rate` drops while topic LEO continues advancing — consumers are connected and heartbeating but not completing `poll()` calls
+- **Indicators:** database lock waits, API timeout errors in consumer logs, increased processing latency per record (especially if idempotent sinks are using deduplication tracking tables)
+- **Diagnostic action:** check the downstream system's health before investigating Kafka. If the sink recovers, lag will drain without any Kafka-side intervention
+
+### Quota Breach
+
+Brokers enforce bandwidth and CPU quotas per service account principal. When a quota is hit, the broker throttles the client's communication channel — the client's request round-trip is artificially delayed. Multiple groups sharing a principal or hitting a cluster-level quota ceiling will all slow simultaneously.
+
+- **Key metric:** `client.quota.max.throttle.time.ms` > 0 on any affected consumer principal
+- **Indicators:** broker logs show `THROTTLED` response codes; consumers experience higher fetch latency without any consumer-side processing slowdown
+- **Diagnostic action:** in Datadog or the Confluent Cloud Metrics API, group metrics by `metric.principal_id` to identify which service accounts are being restricted. Correlate with recent traffic growth or a new producer sending significantly more data
+
+### Deployment Event
+
+Application rollouts, rolling restarts, or infrastructure changes at a fixed time that trigger rebalances or processing pauses across multiple groups.
+
+- **Key metric:** deployment timeline — check CI/CD audit logs and Kubernetes pod restart events against the lag onset time
+- **Indicators:** a "rolling bounce" pattern where throughput drops in sequence across instances before attempting recovery; audit logs showing client re-authentication events or administrative changes at the same timestamp
+- **Diagnostic action:** check for Kubernetes pod restarts where the termination grace period was shorter than `session.timeout.ms`. Forceful shutdowns are treated as consumer crashes by the broker, triggering rebalance cycles. Also check for library version bumps or config changes pushed across multiple services simultaneously
+
+### Group Coordinator Change
+
+When a broker restarts, all consumer groups coordinated by that broker's Group Coordinator simultaneously trigger rebalances — even if those groups are on different topics and managed by different teams. The broker restart is invisible to the platform dashboard (the broker recovers quickly); the rebalance cascade is visible as simultaneous lag growth across unrelated groups.
+
+- **Key metric:** `rebalance-rate-and-time` increasing across multiple consumer groups at the same timestamp; correlate with broker restart events in the cluster audit log
+- **Indicators:** lag onset across groups coincides exactly with a broker restart; groups using `CooperativeStickyAssignor` recover faster (only affected partitions are revoked) than groups still using eager rebalancing (all partitions revoked)
+- **Diagnostic action:** identify which broker hosts the Group Coordinator for the affected groups using `kafka-consumer-groups.sh --describe`. Correlate with the broker restart timeline
+
+### Diagnosis Priority Order
+
+```
+Multiple groups lagging, clean cluster
+          │
+          ▼
+1. Check deployment timeline — did anything deploy at T-0?
+          │
+          ▼
+2. Check client.quota.max.throttle.time.ms per principal
+          │
+          ▼
+3. Check downstream sink health (DB, API, external system)
+          │
+          ▼
+4. Check broker audit log for Group Coordinator restarts
+```
+
 ## Tooling
 
 **Kafka Lag Exporter** (open source, Lightbend): scrapes consumer group offsets and LEOs from the broker, exposes partition-level lag as Prometheus metrics. Recommended for Confluent Platform deployments. Grafana dashboards are available from the community.

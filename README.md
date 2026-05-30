@@ -222,9 +222,10 @@ Producer batching and compression tuning, consumer fetch configuration, broker t
 ---
 
 ### [14 — Case Studies](14-Case-Studies/README.md)
-Production architecture walkthroughs: B2B logistics CX transformation, financial e-commerce exactly-once payment ledger, enterprise banking platform design via the decision framework, and enterprise retail platform validation.
+Production architecture walkthroughs: B2B logistics CX transformation, financial e-commerce exactly-once payment ledger, enterprise banking platform design via the decision framework, enterprise retail platform validation, and real-time fraud detection.
 
 - [real-time-shipment-tracking.md](14-Case-Studies/real-time-shipment-tracking.md)
 - [financial-ecommerce-eos.md](14-Case-Studies/financial-ecommerce-eos.md)
 - [banking-platform-design.md](14-Case-Studies/banking-platform-design.md)
 - [retail-platform-design.md](14-Case-Studies/retail-platform-design.md)
+- [fintech-fraud-detection.md](14-Case-Studies/fintech-fraud-detection.md)
