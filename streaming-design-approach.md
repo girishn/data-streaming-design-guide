@@ -93,6 +93,8 @@ Once elimination has narrowed the space, walk through the design in a fixed laye
 - Connector availability monitoring — a failed connector is a silent data gap
 - End-to-end heartbeat: a synthetic event produced periodically, measured at the consumer end
 
+For approximate latency budgets per layer and how they combine into an end-to-end SLA — [13-Performance-Tuning/end-to-end-latency.md](13-Performance-Tuning/end-to-end-latency.md).
+
 ---
 
 ## Phase 4 — Declare What Is Decided vs Open
