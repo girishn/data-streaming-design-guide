@@ -176,6 +176,7 @@ mTLS and OAuth/OIDC authentication flows, Confluent Cloud Identity Pools with CE
 - [multi-protocol-auth.md](09-Security-Architecture/multi-protocol-auth.md)
 - [rbac.md](09-Security-Architecture/rbac.md)
 - [private-networking.md](09-Security-Architecture/private-networking.md)
+- [cloud-idp-integration.md](09-Security-Architecture/cloud-idp-integration.md)
 
 ---
 
