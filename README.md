@@ -10,6 +10,8 @@ Each module is self-contained. Navigate directly to the area matching your immed
 
 **Facing an ambiguous problem or interview question?** See the [Streaming Design Approach](streaming-design-approach.md) — the meta-skill for getting from an unclear problem to a set of requirements worth running through the framework: discovery questions, elimination thinking, layer-by-layer structure, and how to handle open decisions.
 
+**Designing the topic topology for a new system?** See the [Topic Design Framework](topic-design-framework.md) — a layered decision path covering ordering constraints, tenant isolation, retention and state topology, partition count sizing, schema governance, and an anti-pattern checklist.
+
 ---
 
 ## Designing a System — Decision Sequence

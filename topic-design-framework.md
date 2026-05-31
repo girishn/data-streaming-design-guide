@@ -1,0 +1,189 @@
+# Topic Design Framework
+
+A decision path for designing Kafka topic topology from scratch. Work through the layers in order — each layer's answers constrain the next. Do not start with naming or partition counts before the structural questions are resolved.
+
+The most common mistake is starting with implementation (how many topics, what names) before establishing the structural constraints that make those decisions unambiguous.
+
+---
+
+## Layer 1 — Structural Constraints (Answer These First)
+
+These two questions gate every other decision. Getting them wrong at Layer 1 forces expensive rework at every subsequent layer.
+
+### Q1: Do consumers need ordering for the same entity?
+
+If yes: all events for the same entity (`order_id`, `user_id`, `payment_id`) must land on the same partition. This means **one topic with the entity ID as the partition key**.
+
+One-topic-per-event-type breaks this: Kafka guarantees offset ordering within a partition, not across topics. Reconstructing order across topics requires timestamp-based joins — a fragile dependency on producer wall-clock accuracy across machines.
+
+**Signal that ordering matters:** any consumer that needs to reconstruct a state machine (order lifecycle, payment lifecycle, user session) needs ordering.
+
+### Q2: Do consumers need to join across event types for the same entity?
+
+If yes: **single topic with an `event_type` field** in the schema, not one topic per event type. The consumer reads one topic and filters by `event_type` — offset ordering across event types is preserved for free.
+
+If no (events are truly independent): separate topics per event type may be appropriate.
+
+### Q3: Do tenants or clients need data isolation?
+
+| Isolation requirement | Topology |
+|---|---|
+| Hard isolation (B2B, GDPR, per-client ACLs) | Per-tenant source topics: `{domain}.{tenant_id}.{stream}` |
+| Soft isolation (filter by tenant_id in application) | Shared topic, application-level filtering |
+| No isolation required | Single shared topic |
+
+**Kafka ACLs are topic-level, not record-level.** If client A must not read client B's data, you need per-client topics — you cannot enforce record-level access control within a shared topic. Application-level filtering is only appropriate when the risk of a bug exposing cross-tenant data is acceptable.
+
+**Fan-out from shared source is not a solution:** a shared source topic still contains all tenants' commingled data. The fan-out processor holds read access to everyone's data, and a routing bug has blast radius across all tenants. Use per-tenant source topics from the point of ingestion.
+
+---
+
+## Layer 2 — Retention and State
+
+### Q4: What does each consumer need — current state, full history, or both?
+
+| Consumer need | Topic config |
+|---|---|
+| Current state only | `cleanup.policy=compact`, key = entity ID |
+| Full event history | `cleanup.policy=delete`, time-based `retention.ms` |
+| Both | Two topics: events topic (delete) + derived state topic (compact) |
+
+A single topic cannot serve both purposes cleanly. The events topic is the source of truth; the state topic is a derived view written by a stream processor.
+
+**Who writes to the state topic:** always a stream processor reading from the events topic. Never the original producer dual-writing to both topics — if the events write succeeds and the state write fails, the two topics diverge.
+
+### Q5: Do different consumers have conflicting retention requirements?
+
+If consumers on the same topic need different retention windows (e.g., billing needs 7 years, dashboard needs 7 days), use Confluent Cloud tiered storage:
+
+```
+local.retention.ms  = <hot window>    # move to object storage after N days
+retention.ms        = <max window>    # keep accessible for M years
+```
+
+The critical distinction: `retention.ms` controls how long data is accessible at all — from both local disk and object storage. Setting `retention.ms` to your short window while expecting tiered data to remain accessible is a misconfiguration; it will delete tiered data too.
+
+Consumers use the standard Kafka consumer API regardless of whether data is on local disk or in object storage. See `02-Broker-Infrastructure/tiered-storage.md`.
+
+---
+
+## Layer 3 — Partition Count
+
+### Q6: Size partitions for consumer parallelism, not throughput
+
+**Formula:**
+```
+partitions = max(target_throughput / per_partition_throughput, expected_max_consumers)
+```
+
+For small-to-medium message sizes (< 10 KB), throughput rarely drives partition count beyond single digits. The binding constraint is almost always consumer parallelism ceiling: a consumer group can have at most one active consumer per partition.
+
+**Provision for growth upfront.** Increasing partitions after the topic has data breaks the `murmur2(key) mod N` mapping — existing messages stay in old partitions while new messages for the same key land in new partitions. A consumer must read multiple partitions to reconstruct full entity history. This is a semantic break, not an operational cost. It cannot be fixed without topic recreation and consumer replay.
+
+Apply a growth multiplier (2–3×) to max expected consumer parallelism at scale, not to current needs.
+
+See `02-Broker-Infrastructure/partitioning-strategies.md` for per-partition throughput benchmarks and hot partition diagnosis.
+
+---
+
+## Layer 4 — Schema and Governance
+
+### Q7: How many Schema Registry subjects do you need?
+
+**Default (TopicNameStrategy):** one subject per topic (`{topic-name}-value`). For per-tenant topics, this automatically gives per-tenant subjects. For shared topics, this gives one shared subject.
+
+**Shared subject with a metadata map** is almost always better than per-tenant subjects when tenants need custom fields. A `metadata: map<string, string>` field absorbs optional custom enrichment without multiplying subjects. Per-tenant subjects create schema governance overhead at scale (100 tenants = 100 subjects to maintain independently).
+
+**Compatibility mode:** use `FULL_TRANSITIVE` when multiple consumer groups at different versions must coexist on the same topic. This is the correct default for any shared infrastructure topic. See `08-Stream-Governance/schema-evolution.md`.
+
+### Q8: What is the erasure key granularity?
+
+GDPR right-to-erasure is scoped to the **data subject** (an individual person), not to the tenant. The crypto-shredding encryption key must be per-`customer_id`, not per-`client_id`.
+
+A tenant-level key can only honor erasure by rotating the entire tenant's key — destroying all of that tenant's customers' data to honor one individual's request. See `08-Stream-Governance/pii-tracking.md`.
+
+---
+
+## Layer 5 — Naming Convention
+
+A consistent naming convention makes ACL management, Schema Registry subject discovery, and consumer group naming deterministic.
+
+**Recommended pattern:**
+
+```
+{domain}.{tenant_id}.{stream}          # per-tenant
+{domain}.{stream}                       # shared
+
+orders.acme-corp.events                 # per-tenant source
+orders.acme-corp.state                  # per-tenant derived (compacted)
+payments.txn.submitted                  # shared source
+payments.txn.enriched                   # shared derived
+```
+
+**Conventions:**
+- All lowercase, dot-separated segments
+- `events` suffix for raw, append-only event streams
+- `state` suffix for compacted, current-state topics
+- Domain prefix matches bounded context, not team name
+- Avoid encoding partition count or schema version in the topic name — these change
+
+---
+
+## Anti-Pattern Checklist
+
+Before finalising a topic design, verify none of these apply:
+
+| Anti-pattern | Signal | Fix |
+|---|---|---|
+| One topic per event type for a stateful entity | Consumers join across topics to reconstruct state | Single topic with `event_type` field, keyed by entity ID |
+| Shared source topic for B2B tenants | ACL cannot enforce per-tenant read isolation | Per-tenant source topics from ingestion |
+| Fan-out from shared source for isolation | Shared source still has commingled PII | Eliminate shared source; route at write time |
+| `retention.ms` = short window with tiered storage | Long-retention consumers lose data after short window | `local.retention.ms` = short, `retention.ms` = long |
+| Producer dual-writes to events + state topic | Inconsistency on partial failure | Stream processor writes to state topic only |
+| Erasure key at tenant granularity | Cannot honor individual GDPR erasure | Erasure key per data subject (`customer_id`) |
+| Partition count sized to current throughput only | Must recreate topic when consumers scale | Apply 2–3× growth multiplier to max consumer parallelism |
+| "Increasing partitions is expensive" | Frames it as a cost problem | Frame correctly: ordering breaks on key remapping |
+
+---
+
+## Decision Sequence Summary
+
+```
+1. Does ordering matter per entity?
+   └── Yes → single topic, entity ID as key
+   └── No  → evaluate per-event-type topics
+
+2. Do tenants need data isolation?
+   └── Yes → per-tenant source topics, ACLs at topic level
+   └── No  → shared topic, filter by tenant_id field
+
+3. Do consumers need current state, history, or both?
+   └── State only  → compacted topic
+   └── History only → time-based retention topic
+   └── Both        → events topic + derived compacted state topic
+
+4. Do consumers have conflicting retention windows?
+   └── Yes → tiered storage: local.retention.ms + retention.ms
+   └── No  → single retention.ms
+
+5. Partition count
+   └── max(throughput / per_partition_throughput, max_consumers) × growth_factor
+
+6. Schema
+   └── FULL_TRANSITIVE for multi-consumer topics
+   └── Shared subject + metadata map over per-tenant subjects
+   └── Erasure key per data subject, not per tenant
+```
+
+---
+
+## Cross-References
+
+- `02-Broker-Infrastructure/partitioning-strategies.md` — partition sizing, key-based ordering, compaction vs retention, partition increase semantics
+- `02-Broker-Infrastructure/tiered-storage.md` — `local.retention.ms` vs `retention.ms`, Confluent Cloud tiered storage
+- `08-Stream-Governance/schema-evolution.md` — FULL_TRANSITIVE compatibility, multi-consumer schema coexistence
+- `08-Stream-Governance/pii-tracking.md` — crypto-shredding, per-data-subject erasure key design
+- `09-Security-Architecture/rbac.md` — per-topic ACL patterns for multi-tenant deployments
+- `10-Operational-Patterns/blue-green-topic-migration.md` — safe procedure for partition count changes on live topics
+- `14-Case-Studies/logistics-order-tracking.md` — worked example: B2B logistics platform topic design
+- `14-Case-Studies/fintech-fraud-detection.md` — worked example: multi-topic pipeline, PCI partition key constraints
