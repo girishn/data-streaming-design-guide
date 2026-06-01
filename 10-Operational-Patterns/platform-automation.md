@@ -178,7 +178,7 @@ Total time for a standard topic: minutes from PR merge. No ticket. No waiting fo
 | Topic/ACL/Schema as code | Confluent Terraform provider (`confluentinc/confluent`) |
 | Schema compatibility gate | Schema Registry Maven/Gradle plugin |
 | GitOps apply | GitHub Actions / GitLab CI / ArgoCD |
-| Policy evaluation | OPA (Open Policy Agent) or custom CI scripts |
+| Policy evaluation | OPA (Open Policy Agent) or custom CI scripts — see [opa-policy-enforcement.md](opa-policy-enforcement.md) |
 | Self-service UI (optional) | Confluent Control Center, Conduktor Console, or Backstage plugin |
 | Secrets management | AWS SSM + CSI Secrets Provider |
 

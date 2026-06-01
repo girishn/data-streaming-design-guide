@@ -185,7 +185,7 @@ mTLS and OAuth/OIDC authentication flows, Confluent Cloud Identity Pools with CE
 ---
 
 ### [10 — Operational Patterns](10-Operational-Patterns/README.md)
-Transactional outbox for dual-write safety, Debezium CDC configuration, RocksDB state pre-seeding from S3 for fast cold starts, and GitOps/Terraform self-service topic management.
+Transactional outbox for dual-write safety, Debezium CDC configuration, RocksDB state pre-seeding from S3 for fast cold starts, GitOps/Terraform self-service topic management, and OPA policy enforcement for platform governance.
 
 - [transactional-outbox.md](10-Operational-Patterns/transactional-outbox.md)
 - [cdc-debezium.md](10-Operational-Patterns/cdc-debezium.md)
@@ -196,6 +196,7 @@ Transactional outbox for dual-write safety, Debezium CDC configuration, RocksDB 
 - [producer-onboarding.md](10-Operational-Patterns/producer-onboarding.md)
 - [connector-onboarding.md](10-Operational-Patterns/connector-onboarding.md)
 - [platform-automation.md](10-Operational-Patterns/platform-automation.md)
+- [opa-policy-enforcement.md](10-Operational-Patterns/opa-policy-enforcement.md)
 
 ---
 
