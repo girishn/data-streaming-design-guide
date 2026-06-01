@@ -2,6 +2,8 @@
 
 Framework selection, state durability, and windowing semantics for production stream processing workloads.
 
+For a layered decision path covering stateless vs stateful, framework selection, state size, time semantics, and fault tolerance — see the root-level [Stream Processing Framework](../stream-processing-framework.md).
+
 ## Files
 
 - [kafka-streams-vs-flink.md](kafka-streams-vs-flink.md) — Architectural differences, decision criteria, state rebuild comparison, and exactly-once semantics in each framework.

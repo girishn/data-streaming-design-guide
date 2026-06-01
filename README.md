@@ -12,6 +12,8 @@ Each module is self-contained. Navigate directly to the area matching your immed
 
 **Designing the topic topology for a new system?** See the [Topic Design Framework](topic-design-framework.md) — a layered decision path covering ordering constraints, tenant isolation, retention and state topology, partition count sizing, schema governance, and an anti-pattern checklist.
 
+**Choosing a stream processing framework or designing a stateful pipeline?** See the [Stream Processing Framework](stream-processing-framework.md) — a layered decision path from stateless vs stateful through framework selection, state size, time semantics, windowing, and fault tolerance configuration.
+
 ---
 
 ## Designing a System — Decision Sequence
