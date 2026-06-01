@@ -14,6 +14,8 @@ Each module is self-contained. Navigate directly to the area matching your immed
 
 **Choosing a stream processing framework or designing a stateful pipeline?** See the [Stream Processing Framework](stream-processing-framework.md) — a layered decision path from stateless vs stateful through framework selection, state size, time semantics, windowing, and fault tolerance configuration.
 
+**Building a real-time AI or GenAI application on Kafka?** See [Module 15 — AI and GenAI Patterns](15-AI-GenAI-Patterns/README.md) — streaming RAG architecture, Flink `ML_PREDICT()` for inline model inference, and the complete airline chatbot case study.
+
 ---
 
 ## Designing a System — Decision Sequence
@@ -228,7 +230,7 @@ Producer batching and compression tuning, consumer fetch configuration, broker t
 ---
 
 ### [14 — Case Studies](14-Case-Studies/README.md)
-Production architecture walkthroughs: B2B logistics CX transformation, financial e-commerce exactly-once payment ledger, enterprise banking platform design via the decision framework, enterprise retail platform validation, real-time fraud detection, and B2B logistics SaaS topic design.
+Production architecture walkthroughs: B2B logistics CX transformation, financial e-commerce exactly-once payment ledger, enterprise banking platform design via the decision framework, enterprise retail platform validation, real-time fraud detection, B2B logistics SaaS topic design, and airline customer service streaming RAG pipeline.
 
 - [real-time-shipment-tracking.md](14-Case-Studies/real-time-shipment-tracking.md)
 - [financial-ecommerce-eos.md](14-Case-Studies/financial-ecommerce-eos.md)
@@ -236,3 +238,12 @@ Production architecture walkthroughs: B2B logistics CX transformation, financial
 - [retail-platform-design.md](14-Case-Studies/retail-platform-design.md)
 - [fintech-fraud-detection.md](14-Case-Studies/fintech-fraud-detection.md)
 - [logistics-order-tracking.md](14-Case-Studies/logistics-order-tracking.md)
+- [streaming-rag-airline.md](14-Case-Studies/streaming-rag-airline.md)
+
+---
+
+### [15 — AI and GenAI Patterns](15-AI-GenAI-Patterns/README.md)
+Kafka and Confluent Platform as the backbone for real-time AI applications: streaming RAG lifecycle (data augmentation, inference, workflow routing, post-processing), Flink `ML_PREDICT()` for inline model inference without a separate embedding service, and operational patterns for PII masking, audit observability, and LLM response caching.
+
+- [streaming-rag.md](15-AI-GenAI-Patterns/streaming-rag.md)
+- [flink-ml-predict.md](15-AI-GenAI-Patterns/flink-ml-predict.md)
