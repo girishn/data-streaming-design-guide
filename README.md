@@ -221,14 +221,16 @@ Producer batching and compression tuning, consumer fetch configuration, broker t
 - [consumer-tuning.md](13-Performance-Tuning/consumer-tuning.md)
 - [broker-tuning.md](13-Performance-Tuning/broker-tuning.md)
 - [quota-management.md](13-Performance-Tuning/quota-management.md)
+- [end-to-end-latency.md](13-Performance-Tuning/end-to-end-latency.md)
 
 ---
 
 ### [14 — Case Studies](14-Case-Studies/README.md)
-Production architecture walkthroughs: B2B logistics CX transformation, financial e-commerce exactly-once payment ledger, enterprise banking platform design via the decision framework, enterprise retail platform validation, and real-time fraud detection.
+Production architecture walkthroughs: B2B logistics CX transformation, financial e-commerce exactly-once payment ledger, enterprise banking platform design via the decision framework, enterprise retail platform validation, real-time fraud detection, and B2B logistics SaaS topic design.
 
 - [real-time-shipment-tracking.md](14-Case-Studies/real-time-shipment-tracking.md)
 - [financial-ecommerce-eos.md](14-Case-Studies/financial-ecommerce-eos.md)
 - [banking-platform-design.md](14-Case-Studies/banking-platform-design.md)
 - [retail-platform-design.md](14-Case-Studies/retail-platform-design.md)
 - [fintech-fraud-detection.md](14-Case-Studies/fintech-fraud-detection.md)
+- [logistics-order-tracking.md](14-Case-Studies/logistics-order-tracking.md)
