@@ -176,37 +176,48 @@ See `07-Advanced-Reliability/exactly-once-semantics.md` for the full EOS protoco
 
 ## Decision Sequence Summary
 
-```
-1. Are all transformations stateless?
-   └── Yes → Kafka Connect SMT or simple consumer. No framework.
-   └── No  → continue
-
-2. What type of processing?
-   └── CEP / sequence detection    → Flink only
-   └── Temporal table join         → Flink only
-   └── Aggregation / stream join   → ksqlDB · Kafka Streams · Flink (continue)
-
-3. State size?
-   └── < 20 GB     → Kafka Streams viable
-   └── 20 GB–1 TB  → Kafka Streams + S3 pre-seeding · or Flink
-   └── > 1 TB      → Flink + EmbeddedRocksDB + incremental checkpoints
-
-4. Team and operational context?
-   └── JVM, co-deployed with app   → Kafka Streams
-   └── SQL-first, simple aggs      → ksqlDB
-   └── Independent scaling / managed → Flink
-
-5. Windowed aggregation?
-   └── No  → skip to Layer 6
-   └── Yes:
-       ├── Must be correct on replay / compliance? → event-time + watermarks
-       ├── Approximate metrics acceptable?         → processing-time
-       └── Window type → tumbling / hopping / sliding / session (size accordingly)
-
-6. Fault tolerance?
-   └── Checkpoint interval ← RTO target
-   └── min.pause.between.checkpoints ≥ 30% of interval
-   └── EOS only on paths where duplicates cause irreversible harm
+```mermaid
+flowchart TD
+    A([Stream Processing]) --> B{"All transformations\nstateless?"}
+    B -->|Yes| C["Kafka Connect SMT\nor simple consumer\nNo framework needed"]
+    B -->|No| D{"Processing type?"}
+    D -->|"CEP / sequence detection\nor temporal table join"| E["Flink only\n(CEP library)"]
+    D -->|"Aggregation\nor stream join"| F{"Peak state size\nper partition?"}
+    F -->|"< 20 GB"| G{"Team context?"}
+    F -->|"20 GB – 1 TB"| H["Kafka Streams + S3 pre-seeding\nor Flink"]
+    F -->|"> 1 TB"| I["Flink only\nEmbeddedRocksDB\n+ incremental checkpoints"]
+    H --> G
+    G -->|"JVM, co-deployed"| J["Kafka Streams"]
+    G -->|"SQL-first"| K["ksqlDB"]
+    G -->|"Independent scaling\nor managed"| L["Flink"]
+    J --> M{"Windowed\naggregation?"}
+    K --> M
+    L --> M
+    E --> M
+    I --> M
+    M -->|No| P{"RTO target?"}
+    M -->|Yes| N{"Output correct\non replay?"}
+    N -->|"Yes — compliance\nbilling, reporting"| O1["Event-time + watermarks\nmax_lateness from p99 delay"]
+    N -->|"No — approximate\nmetrics"| P
+    O1 --> O2{"Window type?"}
+    O2 -->|"Periodic reports"| O3["Tumbling"]
+    O2 -->|"Rolling metrics"| O4["Hopping"]
+    O2 -->|"Event proximity"| O5["Sliding"]
+    O2 -->|"User sessions"| O6["Session\n(set max gap)"]
+    O3 --> P
+    O4 --> P
+    O5 --> P
+    O6 --> P
+    P -->|"< 30s"| Q1["Checkpoint 10–15s"]
+    P -->|"30s – 2 min"| Q2["Checkpoint 30–60s"]
+    P -->|"Minutes OK"| Q3["Checkpoint 2–5 min"]
+    Q1 --> R{"Duplicates cause\nirreversal harm?"}
+    Q2 --> R
+    Q3 --> R
+    R -->|"Yes — payments / audit"| S["Exactly-once\nexactly_once_v2 or 2PC sink"]
+    R -->|No| T["At-least-once\nidempotent consumers"]
+    S --> U([Done])
+    T --> U
 ```
 
 ---

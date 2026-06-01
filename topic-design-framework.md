@@ -148,31 +148,39 @@ Before finalising a topic design, verify none of these apply:
 
 ## Decision Sequence Summary
 
-```
-1. Does ordering matter per entity?
-   └── Yes → single topic, entity ID as key
-   └── No  → evaluate per-event-type topics
-
-2. Do tenants need data isolation?
-   └── Yes → per-tenant source topics, ACLs at topic level
-   └── No  → shared topic, filter by tenant_id field
-
-3. Do consumers need current state, history, or both?
-   └── State only  → compacted topic
-   └── History only → time-based retention topic
-   └── Both        → events topic + derived compacted state topic
-
-4. Do consumers have conflicting retention windows?
-   └── Yes → tiered storage: local.retention.ms + retention.ms
-   └── No  → single retention.ms
-
-5. Partition count
-   └── max(throughput / per_partition_throughput, max_consumers) × growth_factor
-
-6. Schema
-   └── FULL_TRANSITIVE for multi-consumer topics
-   └── Shared subject + metadata map over per-tenant subjects
-   └── Erasure key per data subject, not per tenant
+```mermaid
+flowchart TD
+    A([Topic Design]) --> B{"Ordering required\nper entity?"}
+    B -->|Yes| C["Single topic\nEntity ID as partition key"]
+    B -->|No| D["Per-event-type topics\nmay be appropriate"]
+    C --> E{"Consumers join across\nevent types?"}
+    D --> E
+    E -->|Yes| F["Single topic\nevent_type field in schema"]
+    E -->|No| G["Separate topics\nper event type"]
+    F --> H{"Tenant data\nisolation?"}
+    G --> H
+    H -->|"Hard — B2B / GDPR"| I["Per-tenant source topics\ndomain.tenant.stream"]
+    H -->|"Soft or none"| J["Shared topic\ntenant_id field"]
+    I --> K{"Consumer needs?"}
+    J --> K
+    K -->|"State only"| L["cleanup.policy=compact\nkey = entity ID"]
+    K -->|"History only"| M["cleanup.policy=delete\nretention.ms"]
+    K -->|"Both"| N["Events topic (delete)\n+ State topic (compact)\nStream processor writes state only"]
+    L --> O{"Conflicting retention\nwindows?"}
+    M --> O
+    N --> O
+    O -->|Yes| P["Tiered storage\nlocal.retention.ms = hot window\nretention.ms = max window"]
+    O -->|No| Q["Single retention.ms"]
+    P --> R["Partitions = max(\nthroughput ÷ per-partition-throughput,\nmax consumers\n) × 2–3× growth factor"]
+    Q --> R
+    R --> S{"Multiple consumer\nversions coexist?"}
+    S -->|Yes| T["FULL_TRANSITIVE\nShared subject + metadata map"]
+    S -->|No| U["BACKWARD or FULL_TRANSITIVE"]
+    T --> V{"GDPR erasure\nrequired?"}
+    U --> V
+    V -->|Yes| W["Erasure key per customer_id\nnot per tenant_id"]
+    V -->|No| X(["Naming: domain.tenant.stream\nor domain.stream"])
+    W --> X
 ```
 
 ---
