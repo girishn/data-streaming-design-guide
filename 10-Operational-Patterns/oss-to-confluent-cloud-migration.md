@@ -155,15 +155,48 @@ Never use `failover` for a planned migration.
 
 Because Cluster Linking preserves exact offsets, consumers on CC pick up exactly where the OSS consumers left off — no offset translation, no replay.
 
-**Cutover sequence per service:**
-1. Confirm consumer lag for the service's consumer group on OSS = 0 (all caught up)
-2. Update the service's `bootstrap.servers` to the CC cluster endpoint
-3. Update auth config (API key or OAuth token callback)
-4. Restart the service — it connects to CC and resumes from the synced offset
+#### Cutover Order: Consumers Before Producers
 
-**Kafka Streams applications:** Application ID determines the consumer group and changelog topic names. If you migrated the changelog topics via Cluster Linking, the state store can resume from the synced offsets without a full rebuild. If the changelog topics were not migrated (or partition counts differ), the state store rebuilds from scratch — for large RocksDB stores, use S3 pre-seeding. See [10-Operational-Patterns/rocksdb-s3-preseeding.md](rocksdb-s3-preseeding.md).
+Always move consumers to CC before producers. The order is forced by the Cluster Linking state machine:
 
-**Producers:** Switch `bootstrap.servers` and credentials. Idempotent producers (`enable.idempotence=true`) handle any in-flight duplicates during the switchover window.
+- While the link is live, CC mirror topics are **read-only** (`ACTIVE` state) — producers cannot write to CC yet
+- `promote` runs only after consumers are stable on CC; it makes CC topics writable
+- If you move producers first, OSS stops receiving writes, consumers left on OSS drain to the end of the log, and — with no reverse link from CC to OSS — they never see new records
+
+```
+1. Consumers → CC     (reading mirror topics; OSS still feeds via Cluster Linking)
+2. Confirm all consumer groups stable on CC, lag = 0
+3. promote            (final sync; CC topics become writable)
+4. Producers → CC     (writing directly to CC)
+5. Decommission OSS
+```
+
+#### Pure Consumer Services
+
+1. Confirm consumer lag on OSS = 0 for this service's consumer group
+2. Update `bootstrap.servers` to CC endpoint; update auth config
+3. Restart — resumes from the synced offset, no replay
+
+#### Pure Producer Services
+
+Move after `promote` has completed. Switch `bootstrap.servers` and credentials. Idempotent producers (`enable.idempotence=true`) handle any in-flight duplicates during the switchover window.
+
+#### Services That Are Both Producer and Consumer
+
+Cannot be split — cutover must be atomic. Attempting a partial switch (consumer to CC, producer still on OSS) risks split-brain if the service reads its own output topic, and creates unnecessary Cluster Linking round-trips for everything else.
+
+**Sequence:**
+1. Confirm consumer lag = 0 for this service's consumer group on OSS
+2. **Stop the service** — brief controlled shutdown (seconds to low minutes)
+3. Run `promote` for all topics this service produces to (if not already promoted)
+4. Update `bootstrap.servers` and auth for both producer and consumer config
+5. Restart — resumes consuming from the synced offset and produces directly to CC
+
+The brief stop is the price of safety. Consumer offsets are synced to CC before promote, so the service resumes exactly where it left off.
+
+**Kafka Streams applications** are the canonical dual-role case — the application ID governs both input consumption and internal changelog/repartition topic production. There is no way to split Kafka Streams producer from consumer; always use the stop → promote → restart sequence.
+
+If changelog topics were replicated via Cluster Linking, the state store resumes without a full rebuild. If they were not replicated, or partition counts differ, the state store rebuilds from scratch — for large RocksDB stores, use S3 pre-seeding to avoid hour-long cold starts. See [rocksdb-s3-preseeding.md](rocksdb-s3-preseeding.md).
 
 ### Phase 7 — Connect Migration
 
