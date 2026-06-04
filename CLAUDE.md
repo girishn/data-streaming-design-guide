@@ -10,7 +10,7 @@ There is no build system, test suite, or CI pipeline. All content is markdown.
 
 ## Module Structure
 
-Fourteen numbered modules, each a self-contained directory:
+Fifteen numbered modules, each a self-contained directory:
 
 | # | Module | Status |
 |---|--------|--------|
@@ -19,17 +19,29 @@ Fourteen numbered modules, each a self-contained directory:
 | 03 | Data Production — Idempotent and transactional producers | Done |
 | 04 | Data Consumption — Consumer groups, cooperative rebalancing, static membership | Done |
 | 05 | Enterprise Connect — Managed connectors, SMTs, DLQ | Done |
-| 06 | Stream Processing — Kafka Streams vs Flink, state, RocksDB, **windowing** | Done |
+| 06 | Stream Processing — Kafka Streams vs Flink, state, RocksDB, windowing | Done |
 | 07 | Advanced Reliability — ISR mechanics, exactly-once protocol | Done |
-| 08 | Stream Governance — Schema evolution, broker-side validation, PII/crypto-shredding, **stream catalog, stream lineage** | Done |
+| 08 | Stream Governance — Schema evolution, broker-side validation, PII/crypto-shredding, stream catalog, stream lineage | Done |
 | 09 | Security Architecture — mTLS, OAuth/OIDC, CEL Identity Pools, multi-protocol | Done |
-| 10 | Operational Patterns — Transactional outbox, Debezium CDC, RocksDB S3 pre-seeding | Done |
-| 11 | **Monitoring and Observability** — Consumer lag, broker metrics, Confluent Cloud Metrics API | Done |
-| 12 | **Multi-Region and Disaster Recovery** — Cluster Linking, MirrorMaker 2, active-active, RPO/RTO | Done |
-| 13 | **Performance Tuning** — Producer batching, consumer fetch tuning, broker thread configuration | Done |
-| 14 | Case Studies — B2B logistics CX, financial e-commerce EOS payment ledger | Done |
+| 10 | Operational Patterns — Transactional outbox, Debezium CDC, RocksDB S3 pre-seeding, GitOps, OPA, migration | Done |
+| 11 | Monitoring and Observability — Consumer lag, broker metrics, Confluent Cloud Metrics API | Done |
+| 12 | Multi-Region and Disaster Recovery — Cluster Linking, MirrorMaker 2, active-active, RPO/RTO | Done |
+| 13 | Performance Tuning — Producer batching, consumer fetch tuning, broker thread configuration | Done |
+| 14 | Case Studies — B2B logistics CX, financial e-commerce EOS payment ledger, fraud detection, streaming RAG | Done |
+| 15 | AI and GenAI Patterns — Streaming RAG lifecycle, Flink ML_PREDICT(), airline chatbot case study | Done |
 
 Each module has a `README.md` listing its files with one-line descriptions, and individual `.md` files for each topic.
+
+## Root-Level Framework Files
+
+Four meta-documents at the repo root are entry points for cross-cutting design work. They sit outside any module and link into module detail:
+
+| File | Purpose |
+|------|---------|
+| `decision-framework.md` | Phase-by-phase elimination flow: maps hard requirements (compliance, SLA, scale) to forced choices across infrastructure, delivery guarantee, processing, governance, and security. Start here for greenfield designs. |
+| `streaming-design-approach.md` | Discovery-first problem framing: the structured question sequence (sources, sinks, latency, compliance, ownership) that precedes the decision framework. Use for interviews and client discovery sessions. |
+| `topic-design-framework.md` | Layered decision path for topic topology: ordering constraints and isolation first, then retention and state topology, partition sizing, schema governance, and anti-pattern checklist. |
+| `stream-processing-framework.md` | Framework selection path: stateless vs stateful → Kafka Streams vs Flink vs ksqlDB → state size, time semantics, windowing, fault tolerance configuration. |
 
 ## Content Conventions
 
@@ -46,6 +58,14 @@ Each module has a `README.md` listing its files with one-line descriptions, and 
 ## Key Architectural Concept (The "Gold-Layer" Model)
 
 The central design principle this guide advocates: the **broker is the system of record**, not the database. Topics are immutable, append-only logs; databases are materialized views rebuilt from topic replay. Schema changes govern at the topic level (Schema Registry), and databases follow. This inversion must be reflected consistently across all modules — design questions start with "what is the topic structure?" not "what table do we need?"
+
+## Mock Interview Workflow
+
+When the user asks for a mock interview or system design session:
+
+1. Use Excalidraw to draw the architecture diagram incrementally as the conversation progresses — reveal components as the candidate (user) discovers them, not all at once.
+2. At the end of the session, save both the completed case study `.md` file and the `.excalidraw` diagram file to the appropriate module directory (usually `14-Case-Studies/` or the relevant topic module).
+3. Provide a gap analysis at the end: what concepts were missed or shallowly covered, mapped to the specific module files that address them.
 
 ## Ingest workflow
 
