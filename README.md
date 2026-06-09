@@ -16,6 +16,8 @@ Each module is self-contained. Navigate directly to the area matching your immed
 
 **Building a real-time AI or GenAI application on Kafka?** See [Module 15 — AI and GenAI Patterns](15-AI-GenAI-Patterns/README.md) — streaming RAG architecture, Flink `ML_PREDICT()` for inline model inference, and the complete airline chatbot case study.
 
+**Preparing for an interview or design session?** See the [Interview Cheat Sheet](interview-cheat-sheet.md) — a condensed one-pager: five discovery questions, the two structural gates, the key elimination table, and the anti-pattern list. Five minutes to reload the mental model.
+
 ---
 
 ## Designing a System — Decision Sequence
