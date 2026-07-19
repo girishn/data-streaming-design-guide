@@ -95,3 +95,10 @@ psql -c "SELECT slot_name, wal_status, safe_wal_size FROM pg_replication_slots;"
 ```
 
 **Incremental snapshot for large tables:** Do not use `snapshot.mode=initial` on tables with hundreds of millions of rows without incremental snapshot support. Configure `snapshot.mode=initial` with `incremental.snapshot.chunk.size` set to a value that keeps each chunk under a few seconds of query time.
+
+## Cross-References
+
+- Envelope handling (unwrap vs raw), ordering guarantees, and dimension-vs-fact stream shape once
+  this feed enters a Connect+Flink pipeline — [connect-vs-flink-framework.md](../connect-vs-flink-framework.md) Layer 5
+- Outbox table CDC relay pattern — [10-Operational-Patterns/transactional-outbox.md](transactional-outbox.md)
+- Full compatibility mode and safe-vs-breaking-change model — [08-Stream-Governance/schema-evolution.md](../08-Stream-Governance/schema-evolution.md)

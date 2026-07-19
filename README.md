@@ -14,6 +14,8 @@ Each module is self-contained. Navigate directly to the area matching your immed
 
 **Choosing a stream processing framework or designing a stateful pipeline?** See the [Stream Processing Framework](stream-processing-framework.md) — a layered decision path from stateless vs stateful through framework selection, state size, time semantics, windowing, and fault tolerance configuration.
 
+**Designing an end-to-end pipeline that touches an external source or sink?** See the [Connect vs Flink Framework](connect-vs-flink-framework.md) — where Kafka Connect (data integration) hands off to Flink (processing), and how CDC, latency SLAs, exactly-once, schema evolution, and multi-team sharing each shift that boundary. Use this before the Stream Processing Framework when a database, API, or external system is involved.
+
 **Building a real-time AI or GenAI application on Kafka?** See [Module 15 — AI and GenAI Patterns](15-AI-GenAI-Patterns/README.md) — streaming RAG architecture, Flink `ML_PREDICT()` for inline model inference, and the complete airline chatbot case study.
 
 **Preparing for an interview or design session?** See the [Interview Cheat Sheet](interview-cheat-sheet.md) — a condensed one-pager: five discovery questions, the two structural gates, the key elimination table, and the anti-pattern list. Five minutes to reload the mental model.
@@ -46,7 +48,9 @@ Schema compatibility enforcement, PII handling, audit lineage? → [08 — Strea
 mTLS or OAuth/OIDC? Fine-grained access via Identity Pools? → [09 — Security Architecture](09-Security-Architecture/mtls-oauth.md)
 
 **8. How does data enter the system?**
-Direct producer, Kafka Connect, or CDC from a database? → [05 — Enterprise Connect](05-Enterprise-Connect/README.md), [10 — Operational Patterns](10-Operational-Patterns/cdc-debezium.md)
+Direct producer, Kafka Connect, or CDC from a database? If an external system is on either edge,
+work through the boundary decision first → [Connect vs Flink Framework](connect-vs-flink-framework.md),
+[05 — Enterprise Connect](05-Enterprise-Connect/README.md), [10 — Operational Patterns](10-Operational-Patterns/cdc-debezium.md)
 
 **9. How will the system be observed?**
 What metrics matter? What are the alert thresholds? → [11 — Monitoring and Observability](11-Monitoring-Observability/README.md)
@@ -251,3 +255,18 @@ Kafka and Confluent Platform as the backbone for real-time AI applications: stre
 
 - [streaming-rag.md](15-AI-GenAI-Patterns/streaming-rag.md)
 - [flink-ml-predict.md](15-AI-GenAI-Patterns/flink-ml-predict.md)
+
+---
+
+### [16 — Hands-On Labs](16-Hands-On-Labs/README.md)
+Practical exercises for a staff-level platform engineer: Flink stream-processing labs (framework selection, Confluent Cloud Flink SQL, event-time windowing, EOS/checkpoint tuning) and security labs (mTLS vs OAuth design, CFK local mTLS + OAuth, RBAC/Identity Pools via Terraform, zero-downtime SCRAM-to-OAuth migration). Each lab is tagged Design, Hands-on (Local), or Hands-on (Cloud) and cites the module file it's grounded in.
+
+- [flink-lab-01-framework-selection-design.md](16-Hands-On-Labs/flink-lab-01-framework-selection-design.md)
+- [flink-lab-02-confluent-cloud-flink-sql.md](16-Hands-On-Labs/flink-lab-02-confluent-cloud-flink-sql.md)
+- [flink-lab-03-event-time-windowing.md](16-Hands-On-Labs/flink-lab-03-event-time-windowing.md)
+- [flink-lab-04-eos-checkpoint-tuning-design.md](16-Hands-On-Labs/flink-lab-04-eos-checkpoint-tuning-design.md)
+- [flink-lab-05-connect-vs-flink-boundary-design.md](16-Hands-On-Labs/flink-lab-05-connect-vs-flink-boundary-design.md)
+- [security-lab-01-mtls-oauth-design.md](16-Hands-On-Labs/security-lab-01-mtls-oauth-design.md)
+- [security-lab-02-cfk-local-mtls-oauth.md](16-Hands-On-Labs/security-lab-02-cfk-local-mtls-oauth.md)
+- [security-lab-03-rbac-identity-pools-terraform.md](16-Hands-On-Labs/security-lab-03-rbac-identity-pools-terraform.md)
+- [security-lab-04-scram-to-oauth-migration.md](16-Hands-On-Labs/security-lab-04-scram-to-oauth-migration.md)

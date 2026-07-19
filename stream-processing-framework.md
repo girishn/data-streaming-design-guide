@@ -16,6 +16,9 @@ Stateless operations — field masking, format conversion, routing, enrichment f
 - **A lightweight consumer loop** handles stateless per-record enrichment and conditional routing
 
 If all transformations are stateless → stop here. Use SMTs or a simple consumer. No framework needed.
+If the pipeline also touches an external source or sink, see
+[connect-vs-flink-framework.md](connect-vs-flink-framework.md) for the fuller Connect-side treatment
+(CDC, latency, exactly-once, schema evolution, multi-team sharing).
 
 If any transformation requires memory across records — aggregation, join, pattern detection — continue to Layer 2.
 

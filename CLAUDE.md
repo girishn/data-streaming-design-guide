@@ -34,14 +34,15 @@ Each module has a `README.md` listing its files with one-line descriptions, and 
 
 ## Root-Level Framework Files
 
-Four meta-documents at the repo root are entry points for cross-cutting design work. They sit outside any module and link into module detail:
+Five meta-documents at the repo root are entry points for cross-cutting design work. They sit outside any module and link into module detail:
 
 | File | Purpose |
 |------|---------|
 | `decision-framework.md` | Phase-by-phase elimination flow: maps hard requirements (compliance, SLA, scale) to forced choices across infrastructure, delivery guarantee, processing, governance, and security. Start here for greenfield designs. |
 | `streaming-design-approach.md` | Discovery-first problem framing: the structured question sequence (sources, sinks, latency, compliance, ownership) that precedes the decision framework. Use for interviews and client discovery sessions. |
 | `topic-design-framework.md` | Layered decision path for topic topology: ordering constraints and isolation first, then retention and state topology, partition sizing, schema governance, and anti-pattern checklist. |
-| `stream-processing-framework.md` | Framework selection path: stateless vs stateful → Kafka Streams vs Flink vs ksqlDB → state size, time semantics, windowing, fault tolerance configuration. |
+| `stream-processing-framework.md` | Framework selection path: stateless vs stateful → Kafka Streams vs Flink vs ksqlDB → state size, time semantics, windowing, fault tolerance configuration. Assumes data is already in Kafka. |
+| `connect-vs-flink-framework.md` | Pipeline boundary path for requests touching an external source/sink: where Kafka Connect (integration) hands off to Flink (processing), and how CDC, latency SLAs, exactly-once, schema evolution, and multi-team sharing shift that boundary. Precedes `stream-processing-framework.md` when an external system is involved. |
 
 ## Content Conventions
 

@@ -160,3 +160,5 @@ Auto-registration allows any producer to push a new schema version on first use.
 - Broker-side schema ID enforcement — [08-Stream-Governance/broker-side-validation.md](broker-side-validation.md)
 - Schema CI/CD gate via Maven/Gradle plugin — [08-Stream-Governance/data-contracts.md](data-contracts.md)
 - Schema registration via GitOps/Terraform — [10-Operational-Patterns/gitops-terraform.md](../10-Operational-Patterns/gitops-terraform.md)
+- How Connect vs Flink each react to a live schema change (Connect often absorbs additive changes
+  automatically; a running Flink job needs a savepoint-and-redeploy to use a new field) — [connect-vs-flink-framework.md](../connect-vs-flink-framework.md) Layer 8

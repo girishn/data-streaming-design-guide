@@ -270,4 +270,5 @@ Each dimension in this framework maps to a detailed module in the guide:
 - Tenant Isolation / quota management → [13-Performance-Tuning/quota-management.md](13-Performance-Tuning/quota-management.md)
 - Retention / Tiered Storage → [02-Broker-Infrastructure/tiered-storage.md](02-Broker-Infrastructure/tiered-storage.md)
 - Processing Framework / ksqlDB vs Kafka Streams vs Flink → [06-Stream-Processing/kafka-streams-vs-flink.md](06-Stream-Processing/kafka-streams-vs-flink.md)
+- Processing Framework / where Kafka Connect hands off to Flink for pipelines touching an external system → [connect-vs-flink-framework.md](connect-vs-flink-framework.md)
 - Producer / consumer / broker tuning → [13-Performance-Tuning/](13-Performance-Tuning/)
