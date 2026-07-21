@@ -83,6 +83,41 @@ Connector availability monitoring is the platform team's responsibility at the c
 
 ---
 
+## Provisioning — Only After All Gates Pass
+
+Connector deployment goes through the same GitOps flow as topics and ACLs — a `confluent_connector` Terraform resource, reviewed and merged through the cluster pipeline described in `gitops-terraform.md`, not a manual `confluent connect create` run against production:
+
+```hcl
+resource "confluent_connector" "source_sap_inventory" {
+  environment {
+    id = confluent_environment.main.id
+  }
+  kafka_cluster {
+    id = confluent_kafka_cluster.main.id
+  }
+
+  config_sensitive = {
+    "kafka.api.key"    = confluent_api_key.connector_key.id
+    "kafka.api.secret" = confluent_api_key.connector_key.secret
+    # credentials to the source/sink system itself are injected at pod
+    # startup via CSI, not set here — see Gate 4
+  }
+
+  config_nonsensitive = {
+    "connector.class" = "JdbcSourceConnector"
+    "name"             = "source-sap-inventory"   # platform naming convention, Gate 1
+    "kafka.topic"      = "inventory.stock.updated.v1"
+    "tasks.max"        = "3"
+    "errors.tolerance" = "all"
+    "errors.deadletterqueue.topic.name" = "source-sap-inventory.dlq"
+  }
+}
+```
+
+Merging this PR is what takes a connector from staging-validated (Gates 1–6) to live in production — there is no separate manual deployment step. See `gitops-terraform.md`'s "CI/CD Pipeline Structure" for the stage sequence this PR goes through (naming check, `conftest` policy check, `terraform plan`/`apply`).
+
+---
+
 ## Cross-References
 
 - Managed vs self-managed connectors — [05-Enterprise-Connect/managed-connectors.md](../05-Enterprise-Connect/managed-connectors.md)

@@ -31,29 +31,32 @@ Industry benchmarks from platforms at this maturity level: 75% reduction in prov
 These actions require no human approval. A team submits a PR; the pipeline validates and applies.
 
 ### Topic Creation
-The naming convention is the specification:
+The naming convention is the specification — see `topic-design-framework.md` Layer 5 for the full pattern and when `{event-type}` belongs in the name versus staying a schema field:
 
 ```
-{domain}.{entity}.{event-type}.v{N}
-payments.transaction.initiated.v1
-inventory.stock.updated.v1
-customer.loyalty.earned.v1
+{domain}.{entity}.v{N}              # default — event_type is a schema field
+{domain}.{entity}.{event-type}.v{N} # only when events are genuinely independent
+{domain}.{entity}.state.v{N}        # compacted, current-state topic
+
+payments.transaction.v1             # lifecycle events, one topic
+customer.loyalty.earned.v1          # independent event
+payments.transaction.state.v1       # compacted state topic
 ```
 
 The CI/CD pipeline derives from the name:
 - **Domain prefix** → owning team's service principal → ACL `WRITE` automatically granted
 - **Version suffix** → schema subject name → Schema Registry subject created
 - **Domain prefix** → default quota tier applied to the principal
-- **`reference` keyword in name** → `cleanup.policy=compact` applied; otherwise `delete`
+- **`state` in the entity-suffix position** → `cleanup.policy=compact` applied; otherwise `delete`
 
 ```yaml
 # Example: topic-request PR in git
 # teams/payments/topics.yaml
 topics:
-  - name: payments.transaction.initiated.v1
+  - name: payments.transaction.v1
     partitions: 12
     retention_hours: 168
-    schema: schemas/payment-initiated.avsc
+    schema: schemas/payments-transaction.avsc
     owners: payments-platform-team
 ```
 
@@ -148,16 +151,20 @@ These decisions affect the entire cluster and cannot be delegated to individual 
 
 ## What the Pipeline Looks Like
 
+This is the pyramid tiers mapped onto pipeline stages — see `gitops-terraform.md`'s "CI/CD Pipeline Structure" for the full stage list including `terraform fmt`/`validate` and the `conftest` policy check; this is the condensed view of where automation ends and human approval begins:
+
 ```
 Team submits PR (topic YAML + schema file)
           ↓
-CI: naming convention check (fails fast on non-compliant names)
+CI: naming convention check (fails fast on non-compliant names)     ─┐
+          ↓                                                          │ Fully Automated
+CI: schema compatibility check (Schema Registry Maven plugin)        │ (no human touch
+          ↓                                                          │ unless a gate
+CI: terraform plan + conftest policy check                           │ below fires)
+   (partition limits, replication factor, retention, naming —       ─┘
+    see opa-policy-enforcement.md)
           ↓
-CI: schema compatibility check (Schema Registry Maven plugin)
-          ↓
-CI: terraform plan (shows exactly what will be created)
-          ↓
-Policy gate: PII-tagged? → route to human review
+Policy gate: PII-tagged? → route to human review (PR Review Gate tier)
              Standard topic? → auto-approve
           ↓
 Merge → terraform apply
@@ -198,6 +205,7 @@ See `10-Operational-Patterns/gitops-terraform.md` for the full Terraform provide
 ## Cross-References
 
 - GitOps and Terraform two-pipeline model — [10-Operational-Patterns/gitops-terraform.md](gitops-terraform.md)
+- `conftest` policy check (partition/RF/retention/naming enforcement) — [10-Operational-Patterns/opa-policy-enforcement.md](opa-policy-enforcement.md)
 - Producer onboarding gates — [10-Operational-Patterns/producer-onboarding.md](producer-onboarding.md)
 - Consumer onboarding gates — [10-Operational-Patterns/consumer-onboarding.md](consumer-onboarding.md)
 - Connector onboarding gates — [10-Operational-Patterns/connector-onboarding.md](connector-onboarding.md)

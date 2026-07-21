@@ -19,7 +19,7 @@ Build the Terraform-managed RBAC and Identity Pool layer for a three-team multi-
 Three teams share a Dedicated Confluent Cloud cluster:
 
 - `payments` team: produces to `payments.*`, no read access outside their namespace
-- `risk` team: produces to `risk.*`, and needs read-only access to one specific `payments` topic (`payments.transaction.initiated.v1`) for fraud scoring — a declared cross-team read, not a blanket prefix grant
+- `risk` team: produces to `risk.*`, and needs read-only access to one specific `payments` topic (`payments.transaction.v1`) for fraud scoring — a declared cross-team read, not a blanket prefix grant
 - `platform` team: needs `CloudClusterAdmin` at the cluster level and `MetricsViewer` at the org level for a monitoring service account
 
 ## Steps
@@ -64,7 +64,7 @@ resource "confluent_role_binding" "payments_producer_write" {
 resource "confluent_role_binding" "risk_reads_payments_transaction" {
   principal   = "IdentityPool:${confluent_identity_pool.risk_consumer.id}"
   role_name   = "DeveloperRead"
-  crn_pattern = "${confluent_kafka_cluster.main.rbac_crn}/kafka=${confluent_kafka_cluster.main.id}/topic=payments.transaction.initiated.v1"
+  crn_pattern = "${confluent_kafka_cluster.main.rbac_crn}/kafka=${confluent_kafka_cluster.main.id}/topic=payments.transaction.v1"
 }
 
 # platform admin — cluster scope

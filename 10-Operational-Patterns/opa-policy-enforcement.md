@@ -22,7 +22,7 @@ The CI pipeline generates a Terraform plan JSON and passes it to `conftest` befo
 
 This pattern works for Confluent Cloud where you have no control over the broker — the CI pipeline is the only gate available.
 
-**Environment signal:** embed the environment in the topic name per the naming convention (`orders.dev.events`, `payments.prod.txn`). The policy reads the topic name — no separate environment variable injection needed.
+**Environment signal:** the CI job already knows which environment it's running for — it's the Terraform workspace/tfvars it just planned against (dev, staging, or prod each has its own Confluent Cloud environment/cluster, per `topic-design-framework.md` Layer 5). `conftest` has a built-in mechanism for exactly this — the `--data`/`-d` flag loads a separate JSON/YAML file and exposes it under `data`, decoupled from `input` (which stays the Terraform plan, untouched). Use that instead of parsing environment out of the topic name, and instead of hand-rolling a wrapper around the plan JSON.
 
 **Rego policy (`policies/kafka_topics.rego`):**
 
@@ -33,13 +33,13 @@ import future.keywords.in
 
 # Deny dev topics with more than 2 partitions
 deny[msg] {
+  data.environment == "dev"
+
   resource := input.resource_changes[_]
   resource.type == "confluent_kafka_topic"
   resource.change.actions[_] in ["create", "update"]
 
   topic_name := resource.change.after.topic_name
-  contains(topic_name, ".dev.")
-
   partitions := resource.change.after.partitions_count
   partitions > 2
 
@@ -51,13 +51,13 @@ deny[msg] {
 
 # Deny dev topics with replication factor > 1
 deny[msg] {
+  data.environment == "dev"
+
   resource := input.resource_changes[_]
   resource.type == "confluent_kafka_topic"
   resource.change.actions[_] in ["create", "update"]
 
   topic_name := resource.change.after.topic_name
-  contains(topic_name, ".dev.")
-
   rf := to_number(resource.change.after.config["replication.factor"])
   rf > 1
 
@@ -79,30 +79,40 @@ deny[msg] {
   msg := sprintf("topic '%v' must set retention.ms explicitly", [topic_name])
 }
 
-# Deny topics that violate naming convention
+# Deny topics that violate naming convention. Valid shapes, per topic-design-framework.md
+# Layer 5 (this policy must stay in sync with that file, the canonical source):
+#   domain.entity.vN                          (default — event_type is a schema field)
+#   domain.entity.event-type.vN               (independent events only)
+#   domain.tenant_id.entity.vN                (per-tenant isolated)
+#   domain.tenant_id.entity.event-type.vN     (per-tenant, independent events)
+# All four shapes are: 2-4 lowercase dot-separated segments, then a literal vN version
+# segment — one regex covers all of them without needing to know which shape applies.
 deny[msg] {
   resource := input.resource_changes[_]
   resource.type == "confluent_kafka_topic"
   resource.change.actions[_] == "create"
 
   topic_name := resource.change.after.topic_name
-  not regex.match(`^[a-z][a-z0-9-]+\.[a-z][a-z0-9-]+\.[a-z][a-z0-9-]+$`, topic_name)
+  not regex.match(`^[a-z][a-z0-9-]*(\.[a-z][a-z0-9-]*){1,3}\.v[0-9]+$`, topic_name)
 
   msg := sprintf(
-    "topic '%v' violates naming convention: must be domain.env.stream (lowercase, dot-separated)",
+    "topic '%v' violates naming convention: must be domain.entity.vN, with an optional tenant_id and/or event-type segment in between — see topic-design-framework.md Layer 5",
     [topic_name]
   )
 }
 ```
 
-**CI step (GitHub Actions):**
+**CI step (GitHub Actions):** write the environment as its own small data file and pass it via `-d`; `input` stays the plan JSON exactly as `terraform show -json` produced it:
 
 ```yaml
 - name: Generate Terraform plan JSON
   run: terraform plan -out=tfplan.bin && terraform show -json tfplan.bin > tfplan.json
 
+- name: Write environment context for conftest
+  run: echo '{"environment": "'"$TF_WORKSPACE"'"}' > environment.json
+
 - name: Enforce Kafka topic policies
-  run: conftest test tfplan.json --policy policies/ --namespace kafka.topics
+  run: conftest test tfplan.json --data environment.json --policy policies/ --namespace kafka.topics
 ```
 
 A policy violation fails the CI job. The PR cannot be merged until the Terraform config is corrected. The violation message appears directly in the CI log.
@@ -184,17 +194,21 @@ This is the strongest gate for self-managed deployments: no CI bypass, no kubect
 
 **Not available on Confluent Cloud** — you do not control the broker configuration.
 
-**Implementation:**
+**Implementation:** the cluster this plugin runs on *is* a specific environment — a self-managed dev cluster only ever creates dev topics — so, same reasoning as the CI policy above, there's no need to parse environment out of the topic name. The limit comes from that broker's own `server.properties`, which is already environment-specific:
 
 ```java
-public class EnvironmentTopicPolicy implements CreateTopicPolicy {
+public class TopicPolicy implements CreateTopicPolicy {
 
-    private int devMaxPartitions;
+    private int maxPartitions;
+    private short maxReplicationFactor;
 
     @Override
     public void configure(Map<String, ?> configs) {
-        devMaxPartitions = Integer.parseInt(
-            configs.getOrDefault("policy.dev.max.partitions", "2").toString()
+        maxPartitions = Integer.parseInt(
+            configs.getOrDefault("policy.max.partitions", "50").toString()
+        );
+        maxReplicationFactor = Short.parseShort(
+            configs.getOrDefault("policy.max.replication.factor", "3").toString()
         );
     }
 
@@ -203,17 +217,18 @@ public class EnvironmentTopicPolicy implements CreateTopicPolicy {
         String topic = meta.topic();
         int partitions = meta.numPartitions() != null ? meta.numPartitions() : 1;
 
-        if (topic.contains(".dev.") && partitions > devMaxPartitions) {
+        if (partitions > maxPartitions) {
             throw new PolicyViolationException(String.format(
-                "dev topic '%s': partition count %d exceeds limit %d",
-                topic, partitions, devMaxPartitions
+                "topic '%s': partition count %d exceeds limit %d for this cluster",
+                topic, partitions, maxPartitions
             ));
         }
 
         short rf = meta.replicationFactor() != null ? meta.replicationFactor() : 1;
-        if (topic.contains(".dev.") && rf > 1) {
+        if (rf > maxReplicationFactor) {
             throw new PolicyViolationException(String.format(
-                "dev topic '%s': replication factor %d must be 1 in dev", topic, rf
+                "topic '%s': replication factor %d exceeds limit %d for this cluster",
+                topic, rf, maxReplicationFactor
             ));
         }
     }
@@ -223,11 +238,17 @@ public class EnvironmentTopicPolicy implements CreateTopicPolicy {
 }
 ```
 
-**Broker config (`server.properties`):**
+**Broker config (`server.properties`)** — the limits themselves are what vary per environment, set independently on each cluster's own config, not derived from the topic name:
 
 ```properties
-create.topic.policy.class.name=com.yourorg.kafka.EnvironmentTopicPolicy
-policy.dev.max.partitions=2
+# On the dev cluster — cap both partitions and RF low:
+create.topic.policy.class.name=com.yourorg.kafka.TopicPolicy
+policy.max.partitions=2
+policy.max.replication.factor=1
+
+# On the prod cluster, same class, higher limits:
+# policy.max.partitions=50
+# policy.max.replication.factor=3
 ```
 
 Package the class into a JAR and place it on the broker classpath. The broker instantiates it at startup via the default constructor.

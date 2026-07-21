@@ -108,26 +108,44 @@ A tenant-level key can only honor erasure by rotating the entire tenant's key �
 
 ## Layer 5 — Naming Convention
 
-A consistent naming convention makes ACL management, Schema Registry subject discovery, and consumer group naming deterministic.
+A consistent naming convention makes ACL management, Schema Registry subject discovery, and consumer group naming deterministic. This is the canonical pattern for the guide — every other file that provisions or validates topic names (`10-Operational-Patterns/gitops-terraform.md`, `10-Operational-Patterns/platform-automation.md`, `10-Operational-Patterns/producer-onboarding.md`, `10-Operational-Patterns/opa-policy-enforcement.md`) should match it exactly, since the name drives ACL derivation and a non-compliant name breaks automation.
+
+**The name must follow Layer 1's answer, not override it.** Whether `event-type` belongs in the topic name or in the schema is not a separate naming choice — it's already decided by Layer 1 Q1/Q2. Deciding the name first and the topology second is exactly the "start with implementation before structural questions" mistake this file opens by warning against.
 
 **Recommended pattern:**
 
 ```
-{domain}.{tenant_id}.{stream}          # per-tenant
-{domain}.{stream}                       # shared
+{domain}.{entity}.v{N}                                  # Layer 1 Q1/Q2 = yes (ordering/join
+                                                          # required): ONE topic per entity,
+                                                          # event_type is a SCHEMA FIELD, not a
+                                                          # name segment — this is the default
+                                                          # for any entity with a lifecycle
+{domain}.{entity}.{event-type}.v{N}                      # Layer 1 Q2 = no (events are genuinely
+                                                          # independent, nothing ever needs to
+                                                          # read them as one ordered stream) —
+                                                          # the exception, not the default
+{domain}.{tenant_id}.{entity}.v{N}                       # per-tenant, hard isolation (Layer 1 Q3),
+                                                          # same event_type-as-field rule applies
+{domain}.{entity}.state.v{N}                             # compacted, current-state topic
 
-orders.acme-corp.events                 # per-tenant source
-orders.acme-corp.state                  # per-tenant derived (compacted)
-payments.txn.submitted                  # shared source
-payments.txn.enriched                   # shared derived
+payments.transaction.v1                  # transaction lifecycle (initiated/completed/failed/
+                                          # reversed) needs ordering — ONE topic, event_type
+                                          # is a field on each record, not four separate topics
+customer.loyalty.earned.v1               # independent event with no sibling event types that
+                                          # need joining or ordering against it — event-type
+                                          # in the name is fine here
+orders.acme-corp.shipment.v1             # per-tenant source event — hard isolation required
+payments.transaction.state.v1            # shared compacted state topic (current balance, etc.)
 ```
+
+Before using the `{event-type}`-in-name form, confirm the events genuinely never need cross-event ordering or joining for the same entity — a payment/order/session lifecycle almost always fails that test (see Layer 1 Q1's own examples), which is why `payments.transaction.v1` is the pattern's canonical example, not `payments.transaction.initiated.v1`. The tenant segment is inserted right after `domain` only when Layer 1 Q3 mandates hard isolation — don't carry it on shared topics, and don't drop it on isolated ones. `state` is a reserved literal in the entity-suffix position, not a form of `event-type`: it marks a compacted, latest-value topic the way `v{N}` marks a version.
 
 **Conventions:**
 - All lowercase, dot-separated segments
-- `events` suffix for raw, append-only event streams
-- `state` suffix for compacted, current-state topics
 - Domain prefix matches bounded context, not team name
-- Avoid encoding partition count or schema version in the topic name — these change
+- Version the topic (`v{N}`), not the schema — a schema evolves via compatibility mode (`08-Stream-Governance/schema-evolution.md`); a topic version bump means a genuinely new, incompatible stream
+- Avoid encoding partition count in the topic name — it changes, and isn't a semantic property of the stream
+- **Environment is not part of the topic name** — the standard model is one Confluent Cloud environment/cluster per tier (dev/staging/prod), so the Terraform workspace or cluster context already signals environment to CI; embedding it in the name would be redundant. See `10-Operational-Patterns/opa-policy-enforcement.md` for how the CI policy gets environment context without it.
 
 ---
 

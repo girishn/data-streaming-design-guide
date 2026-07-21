@@ -1,4 +1,4 @@
-# GitOps and Terraform for Kafka Topic Management
+﻿# GitOps and Terraform for Kafka Topic Management
 
 At scale, manual topic creation and ACL management breaks down. A shared platform serving hundreds of teams produces topic sprawl, ACL drift, and schema inconsistency within weeks. GitOps — managing Kafka infrastructure as code through git-based pipelines — is the production standard for multi-tenant streaming platforms.
 
@@ -33,11 +33,11 @@ The infrastructure pipeline is privileged — it manages the cluster itself. The
 ### Topics
 
 ```hcl
-resource "confluent_kafka_topic" "payments_initiated" {
+resource "confluent_kafka_topic" "payments_transaction" {
   kafka_cluster {
     id = confluent_kafka_cluster.main.id
   }
-  topic_name       = "payments.initiated.v1"
+  topic_name       = "payments.transaction.v1"
   partitions_count = 12
   rest_endpoint    = confluent_kafka_cluster.main.rest_endpoint
 
@@ -55,7 +55,7 @@ resource "confluent_kafka_topic" "payments_initiated" {
 }
 ```
 
-The topic name is the source of truth. Naming conventions that encode team, domain, and version (`{team}.{entity}.{version}`) allow the pipeline to derive ACL principals and Schema Registry subjects automatically from the topic definition.
+The topic name is the source of truth. The naming convention (`{domain}.{entity}.v{N}` — see `topic-design-framework.md` Layer 5) allows the pipeline to derive ACL principals and Schema Registry subjects automatically from the topic definition.
 
 ### ACLs
 
@@ -120,13 +120,13 @@ resource "confluent_role_binding" "datadog_metrics_viewer" {
 ### Schema Registration
 
 ```hcl
-resource "confluent_schema" "payments_initiated_v1" {
+resource "confluent_schema" "payments_transaction_v1" {
   schema_registry_cluster {
     id = data.confluent_schema_registry_cluster.main.id
   }
-  subject_name = "payments.initiated.v1-value"
+  subject_name = "payments.transaction.v1-value"
   format       = "AVRO"
-  schema       = file("${path.module}/schemas/payments-initiated-v1.avsc")
+  schema       = file("${path.module}/schemas/payments-transaction-v1.avsc")
 
   credentials {
     key    = confluent_api_key.terraform_sr_key.id
@@ -135,11 +135,11 @@ resource "confluent_schema" "payments_initiated_v1" {
 }
 
 # Set compatibility mode per subject — FULL_TRANSITIVE on shared platform topics
-resource "confluent_schema_registry_config" "payments_initiated_compat" {
+resource "confluent_schema_registry_config" "payments_transaction_compat" {
   schema_registry_cluster {
     id = data.confluent_schema_registry_cluster.main.id
   }
-  subject_name             = "payments.initiated.v1-value"
+  subject_name             = "payments.transaction.v1-value"
   compatibility_level      = "FULL_TRANSITIVE"
   credentials {
     key    = confluent_api_key.terraform_sr_key.id
@@ -173,7 +173,7 @@ resource "confluent_connector" "payments_s3_sink" {
   config_nonsensitive = {
     "connector.class"          = "S3_SINK"
     "name"                     = "payments-s3-sink"
-    "kafka.topic"              = "payments.initiated.v1"
+    "kafka.topic"              = "payments.transaction.v1"
     "input.data.format"        = "AVRO"
     "output.data.format"       = "PARQUET"
     "s3.bucket.name"           = "payments-archive"
@@ -203,12 +203,11 @@ resource "confluent_flink_compute_pool" "fraud_detection" {
 
 The naming standard is the key that makes self-service scalable. When topic names encode ownership, the pipeline can derive ACL principals automatically without manual specification per topic.
 
-**Naming pattern:** `{domain}.{entity}.{event}.{version}`
+**Naming pattern:** `{domain}.{entity}.v{N}` by default — `{event-type}` only joins the name when Layer 1 of `topic-design-framework.md` confirms the events never need cross-event ordering or joining. See that file's Layer 5 for the full reasoning; both forms derive ACL principals from the `{domain}` segment the same way.
 
 Examples:
-- `payments.transaction.initiated.v1`
-- `risk.customer.score.updated.v2`
-- `notifications.email.sent.v1`
+- `payments.transaction.v1` — lifecycle events (initiated/completed/failed) share one topic, `event_type` is a schema field
+- `notifications.email.sent.v1` — independent event, no sibling event types to order or join against
 
 **Terraform module: topic + ACL as one unit**
 
@@ -216,7 +215,7 @@ Examples:
 module "topic" {
   source = "./modules/kafka-topic"
 
-  topic_name  = "payments.transaction.initiated.v1"
+  topic_name  = "payments.transaction.v1"
   domain      = "payments"       # derived from topic name
   partitions  = 12
   retention   = "604800000"
@@ -231,6 +230,8 @@ A new team onboarding means: (1) create a service account, (2) add it to `domain
 
 ## CI/CD Pipeline Structure
 
+This is the canonical stage list — `platform-automation.md`'s automation-pyramid diagram is the higher-level summary of the same pipeline, not a separate one. If the two ever diverge, this file wins on stage order and content; that file wins on which stages need human approval.
+
 ```
 Developer creates PR:
   changes/
@@ -240,10 +241,16 @@ Developer creates PR:
 Pipeline (on PR):
   1. terraform fmt --check          # formatting gate
   2. terraform validate             # HCL syntax
-  3. terraform plan                 # show what will change
+  3. Naming convention check        # fails fast on non-compliant topic names
+                                     # (see topic-design-framework.md Layer 5)
   4. confluent schema validate      # compatibility check against Schema Registry
      (or schema-registry-maven-plugin in CI)
-  5. Post plan as PR comment
+  5. terraform plan                 # show what will change
+  6. conftest against the plan      # partition/RF/retention/naming policy —
+                                     # see opa-policy-enforcement.md
+  7. Policy gate: PII-tagged topic? # → route to human review (PR Review Gate
+                                     # tier); standard topic → auto-approve
+  8. Post plan as PR comment
 
 On merge to main:
   1. terraform apply                # apply topics, ACLs, schemas
@@ -252,7 +259,7 @@ On merge to main:
   4. Notify team via webhook
 ```
 
-Schema compatibility check in CI catches breaking changes before they reach `terraform apply`. A failed compatibility check blocks the PR merge — this is the enforcement mechanism that makes `auto.register.schemas=false` safe at scale.
+Schema compatibility check runs before `terraform plan` — a schema rejection is cheaper to fail on than a plan the team will have to regenerate. `conftest` runs against the plan itself, since its rules (partition/replication-factor limits) need to see the actual resource values Terraform computed, not just the HCL source. A failed compatibility check or policy violation blocks the PR merge — this is the enforcement mechanism that makes `auto.register.schemas=false` safe at scale.
 
 ## Self-Managed Connect on Kubernetes (CFK)
 
@@ -331,10 +338,10 @@ Confluent Cloud resources          Kubernetes / EKS resources
 apiVersion: kafka.confluent.crossplane.io/v1alpha1
 kind: Topic
 metadata:
-  name: payments-initiated-v1
+  name: payments-transaction-v1
 spec:
   forProvider:
-    name: payments.initiated.v1
+    name: payments.transaction.v1
     partitionsCount: 12
     config:
       cleanup.policy: delete
@@ -353,6 +360,23 @@ ArgoCD syncs this CRD to EKS → Crossplane controller picks it up → Crossplan
 | Crossplane + ArgoCD | Continuous | High — Crossplane running in EKS | Automatic |
 
 Crossplane is worth the overhead when many teams make frequent config changes and auto-correction of manual drift matters (e.g., regulated environments where Console access must be locked down). For most platforms, Terraform + CI pipeline on PR merge is sufficient — drift is rare when Console access is RBAC-restricted to the platform team.
+
+## Environment Promotion
+
+"Same Terraform modules applied to dev, staging, prod" means directory-per-environment, sharing a common module, not three copies of the same resource blocks:
+
+```
+terraform/
+  modules/kafka-topic/          # shared module: the confluent_kafka_topic + ACL + schema resources
+  environments/
+    dev/main.tf                 # module "orders_topic" { source = "../../modules/kafka-topic", partitions = 2, ... }
+    staging/main.tf              # same module call, different variable values, own Confluent Cloud environment/cluster
+    prod/main.tf                 # same module call, own environment/cluster, own state file
+```
+
+Each environment directory has its own Terraform state and targets its own Confluent Cloud environment/cluster (per the one-cluster-per-tier model in `topic-design-framework.md` Layer 5) — there is no cross-environment state sharing. Promotion is: the PR merges to `dev/main.tf` and applies immediately (Layer 1 automation); the same variable change is then opened as a **separate PR** against `staging/main.tf`, and again against `prod/main.tf`, each going through the full pipeline independently. This is deliberately not automatic fan-out on a single merge — a change that's correct in dev is a hypothesis, not a guarantee, until staging validates it, and prod promotion is a distinct, reviewable event.
+
+---
 
 ## What GitOps Solves vs What It Does Not Solve
 
@@ -375,3 +399,6 @@ Crossplane is worth the overhead when many teams make frequent config changes an
 - Data contracts registered via Terraform — [08-Stream-Governance/data-contracts.md](../08-Stream-Governance/data-contracts.md)
 - Kafka Connect error handling and DLQ — [05-Enterprise-Connect/error-handling-dlq.md](../05-Enterprise-Connect/error-handling-dlq.md)
 - Quota management via Terraform — [13-Performance-Tuning/quota-management.md](../13-Performance-Tuning/quota-management.md)
+- `conftest` policy check that runs inside this pipeline's step 6 — [10-Operational-Patterns/opa-policy-enforcement.md](opa-policy-enforcement.md)
+- Topic naming convention (canonical source) — [topic-design-framework.md](../topic-design-framework.md) Layer 5
+- Automation pyramid — which stages need human approval — [10-Operational-Patterns/platform-automation.md](platform-automation.md)

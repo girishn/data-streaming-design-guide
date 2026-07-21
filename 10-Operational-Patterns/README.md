@@ -2,6 +2,8 @@
 
 Patterns for reliable data movement between databases and Kafka, change data capture, and fast state recovery for stateful stream processors.
 
+**Building CI/CD for topic/schema/connector changes?** Read in this order: [platform-automation.md](platform-automation.md) (automation-tiers overview, what needs human approval) → [gitops-terraform.md](gitops-terraform.md) (the canonical pipeline stage list and Terraform structure) → [opa-policy-enforcement.md](opa-policy-enforcement.md) (the policy checks that run inside that pipeline) → the onboarding gate files ([producer](producer-onboarding.md)/[consumer](consumer-onboarding.md)/[connector](connector-onboarding.md)) for what each team's PR needs to satisfy before it reaches that pipeline.
+
 ## Files
 
 - [transactional-outbox.md](transactional-outbox.md) — The dual-write problem, outbox table structure, CDC-based relay, at-least-once delivery, and when to skip the pattern.

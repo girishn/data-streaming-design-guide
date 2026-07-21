@@ -11,7 +11,7 @@ These gates apply before the producer writes a single event to production.
 The producer team owns the topic specification. The platform team validates it against platform standards before provisioning.
 
 **Checklist:**
-- Topic name follows the platform naming convention: `{domain}.{entity}.{event-type}.v{N}` (e.g., `payments.transaction.initiated.v1`). The name drives ACL derivation — non-compliant names break automation
+- Topic name follows the platform naming convention (`topic-design-framework.md` Layer 5): `{domain}.{entity}.v{N}` by default, with `event_type` as a schema field — not `{domain}.{entity}.{event-type}.v{N}` unless the events are confirmed to never need cross-event ordering or joining (e.g., `payments.transaction.v1`, not `payments.transaction.initiated.v1`). The name drives ACL derivation — non-compliant names break automation
 - Partition count justified against throughput target and expected max consumer concurrency — not defaulted. See `02-Broker-Infrastructure/partitioning-strategies.md` for sizing formula and practical bands
 - Retention policy declared: `delete` for event streams, `compact` for latest-value state tables. Blanket `delete` on reference data topics is a design error
 - Replication factor = 3 with `min.insync.replicas=2` — non-negotiable for production

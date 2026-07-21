@@ -64,6 +64,8 @@ Unit and integration tests run pre-merge against synthetic data. Acceptance and 
 
 Run both automatically after every deployment, not manually and not only before major releases — regressions introduced by routine changes are exactly what a soak test is positioned to catch that a fast CI suite structurally cannot (by design, CI runs don't sustain load long enough to surface drift).
 
+**This is a separate pipeline from the platform's own topic/schema/connector provisioning pipeline** (`gitops-terraform.md`, `platform-automation.md`) — that pipeline ends at `terraform apply` and a notification; it doesn't own application deploys. Acceptance and soak testing is triggered by *each team's own* application CI/CD, on their own deploy cadence, against the already-provisioned topics/schemas. Don't look for a test-trigger stage in the platform pipeline — it isn't there because it isn't that pipeline's job.
+
 ## Anti-Patterns
 
 | Anti-pattern | Signal | Fix |
