@@ -81,7 +81,11 @@ the join itself belongs entirely to Flink.
 **Q4: Single Kafka topic, or fan-out to multiple destinations?**
 
 - **Back into Kafka** → Flink's native `KafkaSink` is the natural terminus for anything continuing
-  downstream.
+  downstream. This is also the answer when the "sink" is an internal consumer application (a
+  real-time dashboard, an internal service) rather than an external system or database: write to
+  Kafka once, and let that application consume the topic directly with a Kafka client — no Connect
+  or further Flink decision needed on that leg. Only route through a Connect sink connector when the
+  destination is genuinely outside Kafka's client model (a database, search index, or external API).
 - **Fan-out to several external systems from one processed stream** → land the processed result in
   Kafka once, then run N independent Connect sink connectors off that topic. Don't make a Flink job
   own multiple external-system integrations directly — that re-implements connectors Confluent (or
@@ -143,6 +147,14 @@ Three specific ways a tight latency target breaks silently if not checked:
 - A **windowed Flink aggregation** — output is definitionally unavailable until the window closes.
   Reconcile "must aggregate AND be low-latency" with early-firing triggers
   (`stream-processing-framework.md` Layer 5), not by shrinking the window past correctness.
+- **Sub-second latency combined with full transactional EOS on the same Flink hop.** This is the
+  same checkpoint-interval floor as the windowed-aggregation case, for a different reason: under
+  `CheckpointingMode.EXACTLY_ONCE`, output is only visible to `read_committed` consumers at
+  checkpoint boundaries (10s–5min by default) — see Layer 7. A hop that must be both sub-second
+  *and* exactly-once cannot get both from Flink checkpointing alone. Resolve it the way Layer 7
+  resolves it generally: reserve transactional EOS for the specific hop where a duplicate causes
+  irreversible harm, and use at-least-once plus idempotent processing (dedup on a natural key) for
+  the latency-critical hop instead.
 
 ---
 
@@ -204,14 +216,23 @@ field — not erroring, just ignoring.
   platform-owned, fanned out to every consuming team via Kafka's native multi-consumer model —
   never one connector per team against the same source (redundant DB load, redundant
   schema-history bookkeeping).
-- **Flink work decentralises — one job per team/use case, not a shared job.** A shared job means
-  one team's redeploy, savepoint restart, or bug has multi-team blast radius. On self-managed Flink
-  (Kubernetes Operator), this is the concrete choice between **application mode** (dedicated
-  JobManager/TaskManagers per job — the safer default once more than one team is involved) and
-  **session mode** (shared JobManager and task-slot pool — fine for one team, a noisy-neighbour risk
-  once several teams compete for the same slots against different latency SLAs). On Confluent Cloud
-  Flink, the equivalent lever is compute pool sizing — a dedicated pool per team or SLA tier instead
-  of one shared pool for every workload.
+- **Flink work run *for* a team decentralises — one job per team/use case, not a shared job.** A
+  shared job means one team's redeploy, savepoint restart, or bug has multi-team blast radius. On
+  self-managed Flink (Kubernetes Operator), this is the concrete choice between **application mode**
+  (dedicated JobManager/TaskManagers per job — the safer default once more than one team is
+  involved) and **session mode** (shared JobManager and task-slot pool — fine for one team, a
+  noisy-neighbour risk once several teams compete for the same slots against different latency
+  SLAs). On Confluent Cloud Flink, the equivalent lever is compute pool sizing — a dedicated pool
+  per team or SLA tier instead of one shared pool for every workload.
+- **A shared enrichment job feeding multiple teams is a different case from either of the above —
+  treat it like the CDC/ingestion row, not the per-team row.** The Layer 3 reference-data join
+  pattern (CDC a dimension table, Flink joins the primary stream against it) often produces a single
+  golden-record topic that several teams then consume independently downstream. That upstream join
+  is platform- or single-team-owned infrastructure, not "per team/use case" work — apply the same
+  centralize-and-fan-out-via-Kafka reasoning as CDC/ingestion: one job, run in application mode for
+  isolation from anything downstream, publishing to a topic every consuming team reads with their
+  own consumer group. Per-team decentralization applies to what each team does *with* that shared
+  output, not to producing it.
 - **Schema compatibility becomes a cross-team contract, not an internal detail.** Enforce
   `BACKWARD` or `FULL_TRANSITIVE` at the registry as a hard guardrail — a breaking change from one
   team is now a production incident for every other team consuming the same shared topic.

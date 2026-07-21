@@ -26,11 +26,11 @@ Each module is self-contained. Navigate directly to the area matching your immed
 
 When starting a new data streaming design, work through these questions in order. Each links to the relevant module.
 
-**1. What is the data contract?**
-Define the event schema before any infrastructure decision. What fields, what types, what nullable guarantees? → [08 — Stream Governance](08-Stream-Governance/schema-evolution.md)
+**1. What is the topic structure?**
+Resolve structural constraints first — ordering requirements, joins across event types, tenant isolation — then retention, partition count, and partition key. Schema comes after this, not before it: see the explicit ordering rationale in [Topic Design Framework](topic-design-framework.md). → [02 — Broker Infrastructure](02-Broker-Infrastructure/partitioning-strategies.md)
 
-**2. What is the topic structure?**
-How many partitions? What is the partition key? What retention policy? → [02 — Broker Infrastructure](02-Broker-Infrastructure/partitioning-strategies.md)
+**2. What is the data contract?**
+With topic structure fixed, define the event schema — fields, types, nullable guarantees, compatibility mode. → [08 — Stream Governance](08-Stream-Governance/schema-evolution.md)
 
 **3. What delivery guarantee does the producer need?**
 At-least-once (idempotent) or exactly-once (transactional)? → [03 — Data Production](03-Data-Production/idempotent-producers.md)

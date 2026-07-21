@@ -78,6 +78,8 @@ partitions = max(target_throughput / per_partition_throughput, expected_max_cons
 
 For small-to-medium message sizes (< 10 KB), throughput rarely drives partition count beyond single digits. The binding constraint is almost always consumer parallelism ceiling: a consumer group can have at most one active consumer per partition.
 
+**`expected_max_consumers` is scoped per consumer group, not summed across every team sharing the topic.** Multiple teams reading the same topic each run their own independent consumer group — each group gets its own full set of consumers up to the partition count, since group membership doesn't compete for partitions across groups. Size against the single group with the largest parallelism requirement, not the sum of every team's consumer count; summing overstates the requirement and over-provisions partitions for every other consumer of the same topic.
+
 **Provision for growth upfront.** Increasing partitions after the topic has data breaks the `murmur2(key) mod N` mapping — existing messages stay in old partitions while new messages for the same key land in new partitions. A consumer must read multiple partitions to reconstruct full entity history. This is a semantic break, not an operational cost. It cannot be fixed without topic recreation and consumer replay.
 
 Apply a growth multiplier (2–3×) to max expected consumer parallelism at scale, not to current needs.

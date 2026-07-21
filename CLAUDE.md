@@ -10,7 +10,7 @@ There is no build system, test suite, or CI pipeline. All content is markdown.
 
 ## Module Structure
 
-Fifteen numbered modules, each a self-contained directory:
+Sixteen numbered modules, each a self-contained directory:
 
 | # | Module | Status |
 |---|--------|--------|
@@ -29,6 +29,7 @@ Fifteen numbered modules, each a self-contained directory:
 | 13 | Performance Tuning — Producer batching, consumer fetch tuning, broker thread configuration | Done |
 | 14 | Case Studies — B2B logistics CX, financial e-commerce EOS payment ledger, fraud detection, streaming RAG | Done |
 | 15 | AI and GenAI Patterns — Streaming RAG lifecycle, Flink ML_PREDICT(), airline chatbot case study | Done |
+| 16 | Hands-On Labs — Flink framework selection, Confluent Cloud Flink SQL, EOS/checkpoint tuning, mTLS/OAuth design, CFK local mTLS+OAuth, RBAC/Identity Pools Terraform, SCRAM-to-OAuth migration | Done |
 
 Each module has a `README.md` listing its files with one-line descriptions, and individual `.md` files for each topic.
 

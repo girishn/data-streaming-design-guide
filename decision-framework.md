@@ -6,6 +6,8 @@ A general decision framework for any Kafka / Confluent-ecosystem streaming desig
 
 **Scope:** Kafka and Confluent Platform / Confluent Cloud. Not intended to generalise across Pulsar, Kinesis, or other streaming technologies.
 
+**Before this:** if the requirements aren't crisp yet — an ambiguous problem statement, an interview prompt, a stakeholder ask with unstated constraints — work through [streaming-design-approach.md](streaming-design-approach.md) first. It covers the discovery questions that turn an ambiguous ask into the hard requirements this framework filters against. This framework assumes those requirements are already in hand.
+
 ---
 
 ## Decision Flow
@@ -269,6 +271,7 @@ Each dimension in this framework maps to a detailed module in the guide:
 - Disaster Recovery / Cluster Linking vs MirrorMaker 2 → [12-Multi-Region-DR/](12-Multi-Region-DR/)
 - Tenant Isolation / quota management → [13-Performance-Tuning/quota-management.md](13-Performance-Tuning/quota-management.md)
 - Retention / Tiered Storage → [02-Broker-Infrastructure/tiered-storage.md](02-Broker-Infrastructure/tiered-storage.md)
+- Topic topology (ordering, joins, isolation, partition count, naming) — the layered path behind the Retention and Tenant Isolation dimensions above → [topic-design-framework.md](topic-design-framework.md)
 - Processing Framework / ksqlDB vs Kafka Streams vs Flink → [06-Stream-Processing/kafka-streams-vs-flink.md](06-Stream-Processing/kafka-streams-vs-flink.md)
 - Processing Framework / where Kafka Connect hands off to Flink for pipelines touching an external system → [connect-vs-flink-framework.md](connect-vs-flink-framework.md)
 - Producer / consumer / broker tuning → [13-Performance-Tuning/](13-Performance-Tuning/)

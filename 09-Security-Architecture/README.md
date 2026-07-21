@@ -10,3 +10,5 @@ Authentication flows, identity federation at scale, and zero-downtime protocol m
 - [rbac.md](rbac.md) — Role-Based Access Control in Confluent Cloud: role taxonomy (MetricsViewer, DeveloperRead/Write, ResourceOwner, CloudClusterAdmin), role bindings at Environment/Cluster/Topic scope, RBAC vs ACLs distinction, and Identity Pool + CEL + RBAC integration.
 - [private-networking.md](private-networking.md) — Private networking for Confluent Cloud Dedicated: AWS PrivateLink vs VPC Peering vs Transit Gateway, data plane vs control plane separation, CoreDNS configuration for private broker hostname resolution.
 - [cloud-idp-integration.md](cloud-idp-integration.md) — Multi-tenant platform authentication approaches: service account API keys, credential-based SPN/service account keys, and credential-free workload identity (AWS IRSA, Azure AKS Workload Identity, GCP Workload Identity). Tradeoff table and GitOps implications per approach.
+
+For a worked example applying zero-trust identity across a shared, self-service platform with CFK on GKE — see [14-Case-Studies/logistics-platform-engineering-gcp.md](../14-Case-Studies/logistics-platform-engineering-gcp.md).
