@@ -82,6 +82,8 @@ The partition key decision must be documented as part of the topic contract — 
 - Transactional produce tested end-to-end in staging if EOS is required
 - Downstream consumer in staging has consumed and processed the staging events without error
 
+For the full testing layer breakdown behind this gate (unit, integration, contract, acceptance/soak) — see `10-Operational-Patterns/testing-strategy.md`.
+
 ---
 
 ## Cross-References
@@ -95,3 +97,4 @@ The partition key decision must be documented as part of the topic contract — 
 - Producer tuning — [13-Performance-Tuning/producer-tuning.md](../13-Performance-Tuning/producer-tuning.md)
 - Consumer onboarding — [10-Operational-Patterns/consumer-onboarding.md](consumer-onboarding.md)
 - Platform automation model — [10-Operational-Patterns/platform-automation.md](platform-automation.md)
+- Testing strategy: unit, integration, contract, acceptance/soak — [10-Operational-Patterns/testing-strategy.md](testing-strategy.md)

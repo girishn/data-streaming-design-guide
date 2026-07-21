@@ -15,6 +15,8 @@ For small state stores (tens of MB, millions of keys), changelog replay takes se
 
 During rebuild, the application either serves stale state or is completely unavailable. For services with sub-minute RTO requirements, changelog replay is not a viable recovery mechanism at scale.
 
+Before reaching for this pattern, check whether `num.standby.replicas` alone solves your case — a warm standby avoids rebuild entirely for routine single-instance failover, and is far cheaper to operate than S3 pre-seeding. Pre-seeding earns its complexity for the cases standbys can't cover: scale-out onto brand-new instances, or a full-fleet rebuild with no surviving standby to promote. See `06-Stream-Processing/state-management.md`.
+
 ## The Pre-Seeding Pattern
 
 S3 pre-seeding treats object storage as a warm backup of the local RocksDB state. Recovery becomes: download the backup → extract it → replay only the small delta of changes since the backup was taken. This reduces recovery time from hours to minutes or seconds depending on backup recency.

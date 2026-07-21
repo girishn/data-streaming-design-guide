@@ -37,7 +37,19 @@ Every write to a Kafka Streams state store produces a record to a corresponding 
 
 **The problem:** changelog replay is bounded by network throughput, not local disk speed. For a state store with 100GB of compacted data, rebuilding over a 1Gbps network takes at minimum several minutes and in practice often 45 minutes to 2 hours when the changelog is heavily compacted or the broker is under load. During this rebuild, the instance is not processing new records and consumer lag accumulates on all partitions assigned to it.
 
-The S3 pre-seeding pattern solves this. Details and implementation are in `10-Operational-Patterns/rocksdb-s3-preseeding.md`.
+Two mitigations, applied in order of increasing operational cost:
+
+**Standby replicas** (`num.standby.replicas`) are the first line of defense. Kafka Streams can maintain N fully-caught-up copies of each state store on other instances in the application, continuously replaying the changelog in the background:
+
+```properties
+num.standby.replicas=1
+```
+
+When the active instance for a partition fails, a standby is promoted immediately — no changelog replay, no rebuild window. The cost is proportional storage and network overhead: each standby replica consumes disk space and changelog bandwidth equal to the active store it shadows. `num.standby.replicas=1` (one standby per active store) covers a single-instance failure; higher values trade more steady-state resource cost for tolerance of multiple simultaneous failures.
+
+In multi-AZ or multi-rack deployments, an unconstrained standby can land in the same AZ as its active partition, which defeats the purpose when the AZ itself fails. `rack.aware.assignment.tags` (e.g., tagging instances with `zone` and `cluster`) tells Streams' task assignor to place standbys on instances with a different tag value than the active task — the standard pattern is tagging by availability zone so a standby survives an AZ outage that takes out the active instance.
+
+**S3 pre-seeding** solves the remaining case standby replicas don't cover: a brand-new instance (scale-out, or every instance replaced at once) that has no standby to promote and must build state from nothing. Details and implementation are in `10-Operational-Patterns/rocksdb-s3-preseeding.md`. In practice the two are complementary, not either/or: standby replicas handle routine single-instance failover with near-zero downtime, and S3 pre-seeding bounds the cold-start cost for scaling events or full rebuilds that standbys can't avoid.
 
 ## Flink State Backends
 

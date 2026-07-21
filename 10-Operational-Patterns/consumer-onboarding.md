@@ -12,7 +12,7 @@ The consuming team must demonstrate that they can deserialise the topic's schema
 
 **Checklist:**
 - Team has downloaded and validated the Avro/Protobuf/JSON Schema from Schema Registry in staging
-- Deserialisation succeeds with the current schema version
+- Deserialisation succeeds with the current schema version, exercised via an integration test against a real (ephemeral) broker — not a unit test alone. See `10-Operational-Patterns/testing-strategy.md`
 - Team is configured for `BACKWARD` or `BACKWARD_TRANSITIVE` compatibility on their consumer — they can process historical data or skip multiple schema versions without failure
 - Subject naming strategy matches the topic (`TopicNameStrategy` is the default; `RecordNameStrategy` or `TopicRecordNameStrategy` require explicit justification)
 - Broker-side schema validation is confirmed active on the topic — consumers will not receive records with unregistered schema IDs
@@ -148,3 +148,4 @@ PR review by the platform team is the final gate — a second pair of eyes on pr
 - Consumer lag monitoring — [11-Monitoring-Observability/consumer-lag.md](../11-Monitoring-Observability/consumer-lag.md)
 - GitOps and Terraform provisioning — [10-Operational-Patterns/gitops-terraform.md](gitops-terraform.md)
 - Quota management — [13-Performance-Tuning/quota-management.md](../13-Performance-Tuning/quota-management.md)
+- Testing strategy: unit, integration, contract, acceptance/soak — [10-Operational-Patterns/testing-strategy.md](testing-strategy.md)
