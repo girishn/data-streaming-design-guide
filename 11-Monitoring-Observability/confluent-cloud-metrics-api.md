@@ -48,37 +48,40 @@ confluent iam rbac role-binding create \
 GET https://api.telemetry.confluent.cloud/v2/metrics/cloud/descriptors/metrics
 ```
 
-**Query endpoint** — retrieve time-series data:
+**Query endpoint** — retrieve time-series data. The `v2` API groups a query's metric and aggregation operator under `aggregations` (currently limited to one aggregation per request), and label fields are unprefixed (`metric.<label>`) — the older `metric.label.<label>` prefix and top-level `metric` field are `v1` syntax, now sunset:
+
 ```bash
 POST https://api.telemetry.confluent.cloud/v2/metrics/cloud/query
 Content-Type: application/json
 
 {
+  "aggregations": [
+    { "metric": "io.confluent.kafka.server/consumer_lag_offsets", "agg": "SUM" }
+  ],
   "filter": {
     "op": "AND",
     "filters": [
       { "field": "resource.kafka.id", "op": "EQ", "value": "lkc-abc123" },
-      { "field": "metric.label.topic",  "op": "EQ", "value": "orders"   }
+      { "field": "metric.topic",  "op": "EQ", "value": "orders"   }
     ]
   },
   "granularity": "PT1M",
   "intervals": ["2026-05-27T00:00:00Z/2026-05-27T01:00:00Z"],
-  "metric": "io.confluent.kafka.server/consumer_lag_offsets",
-  "group_by": ["metric.label.consumer_group_id", "metric.label.partition"]
+  "group_by": ["metric.consumer_group_id", "metric.partition"]
 }
 ```
 
-Supported granularities: `PT1M` (1 minute), `PT5M`, `PT15M`, `PT1H`. The API retains data at 1-minute resolution for 7 days and at coarser granularities for longer periods.
+Supported granularities: `PT1M`, `PT5M`, `PT15M`, `PT30M`, `PT1H`, `PT4H`, `PT6H`, `PT12H`, `P1D`, or `ALL`. Sub-hour granularities cap how long an `intervals` range can span (`PT1M` → max 6 hours, `PT5M` → max 1 day, `PT15M` → max 4 days, `PT30M` → max 7 days); `PT1H` and coarser accept any interval length. The API retains data at 1-minute resolution for 7 days and at coarser granularities for longer periods.
 
-**Filtering dimensions:**
+**Filtering and `group_by` dimensions** (unprefixed `metric.<label>` form, `v2` syntax):
 
 | Field | Example values |
 |---|---|
 | `resource.kafka.id` | Cluster ID (`lkc-abc123`) |
-| `metric.label.topic` | Topic name |
-| `metric.label.consumer_group_id` | Consumer group ID |
-| `metric.label.partition` | Partition number |
-| `metric.label.principal_id` | Service account or user ID |
+| `metric.topic` | Topic name |
+| `metric.consumer_group_id` | Consumer group ID |
+| `metric.partition` | Partition number |
+| `metric.principal_id` | Service account or user ID |
 
 ## Prometheus Integration via `/export`
 
@@ -121,6 +124,30 @@ The scrape interval should be at least 60 seconds — the API updates metrics at
 | Use case | Confluent Cloud clusters — the only option | Confluent Platform self-managed — the primary option |
 
 For hybrid environments (some clusters on Confluent Cloud, others on Confluent Platform), the monitoring stack must handle both: Metrics API for cloud clusters, JMX Exporter for Platform clusters. Unify at the Prometheus/Grafana layer using separate scrape jobs.
+
+## Cost Showback and Chargeback by Team
+
+On a shared multi-tenant cluster, `metric.principal_id` (above) is also the mechanism for attributing cost to the teams driving it — assign each team its own service account, then aggregate their throughput to approximate their share of the bill.
+
+**DIY showback via the Metrics API (GA, works today):** group `io.confluent.kafka.server/request_bytes` (or `response_bytes`) by `metric.principal_id`, sum over a billing period, and use each service account's proportion of total bytes as its showback weight. Unlike `received_bytes`/`sent_bytes` (topic/partition-scoped, used for the throughput example above), `request_bytes`/`response_bytes` carry a `principal_id` label, which is what makes them the right metric for this:
+
+```json
+{
+  "aggregations": [
+    { "metric": "io.confluent.kafka.server/request_bytes", "agg": "SUM" }
+  ],
+  "filter": { "op": "AND", "filters": [
+    { "field": "resource.kafka.id", "op": "EQ", "value": "lkc-abc123" }
+  ]},
+  "granularity": "P1D",
+  "intervals": ["2026-06-01T00:00:00Z/2026-07-01T00:00:00Z"],
+  "group_by": ["metric.principal_id"]
+}
+```
+
+This only captures throughput-driven cost (network, and by extension eCKU consumption on Dedicated clusters) — it does not split fixed costs (storage, Schema Registry base, support) across tenants. For a platform team that already tracks per-team quotas (see `13-Performance-Tuning/quota-management.md`), this is usually the pragmatic default: it reuses infrastructure already in place for quota enforcement and needs no additional product access.
+
+**Native Cost Allocation (Early Access):** Confluent Cloud also offers a built-in Cost Allocation feature that itemizes the actual bill — not just throughput — by service account, user, identity pool, or resource ID. It splits usage-driven line items (network, Connect tasks, CFUs, CSUs) proportionally by measured consumption, and shared/fixed line items (CKUs, partitions, storage, Schema Registry base, support) by a weighted average. As of this writing it is **Early Access** (no SLA, requires enablement through your Confluent account team), export is **console-only** as a CSV from the Billing and payment section — there is no public API for it — and data lags actual usage by up to 48 hours. Treat it as the eventual replacement for DIY Metrics API showback once it reaches GA, not as something to build automation against today.
 
 ## KIP-714 Client-Side Metrics
 
