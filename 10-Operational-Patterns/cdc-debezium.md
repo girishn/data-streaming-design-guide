@@ -12,6 +12,15 @@ Debezium is a log-based Change Data Capture engine deployed as a Kafka Connect s
 
 The key property of log-based CDC is that Debezium reads sequential writes to log files, bypassing the query planner and indexes entirely. This imposes near-zero additional load on the database compared to polling. Events are emitted within milliseconds of commit.
 
+```mermaid
+flowchart LR
+    DB[(Source Database)] -->|reads WAL / binlog directly\nno query planner, no polling| Debezium[Debezium Source Connector]
+    Debezium --> Snap["Incremental Snapshot\n(chunked by primary key range)"]
+    Debezium --> Stream["Streaming Mode\n(continuous WAL/binlog tail)"]
+    Snap -->|baseline rows, merged with\nconcurrent WAL changes| Topic[(Kafka Topic)]
+    Stream -->|commit-ordered events| Topic
+```
+
 ## Snapshot vs Streaming Modes
 
 A connector deployment transitions through two phases:

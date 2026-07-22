@@ -90,7 +90,9 @@ TumblingEventTimeWindows.of(Time.minutes(5)).withLateness(Time.seconds(30))
 
 **Drop:** events arriving past the grace period are silently discarded. Appropriate when late events are rare and approximate results are acceptable. Monitor the late-events-dropped metric to confirm the assumption holds.
 
-**DLQ routing:** route late events to a dead letter topic for manual reconciliation or offline reprocessing. Use when late events represent genuine data quality issues that need investigation rather than expected out-of-order delivery.
+**DLQ routing:** route late events to a dead letter topic via a side output for manual reconciliation or offline reprocessing. Use when late events represent genuine data quality issues that need investigation rather than expected out-of-order delivery. Re-driving a record from this DLQ back into the job requires adjusting its event time forward — replaying it with the original timestamp only routes it back to the side output again, since the watermark has already advanced past it.
+
+This is one of three distinct DLQ mechanisms in this guide — see `04-Data-Consumption/consumer-groups.md`'s Application-Level DLQ Pattern section for the full comparison against Connect's and a hand-written consumer's DLQ handling.
 
 ## Window Trade-offs Summary
 

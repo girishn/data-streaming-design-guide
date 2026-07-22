@@ -12,8 +12,16 @@ See `02-Broker-Infrastructure/partitioning-strategies.md` for the short-form ver
 
 Track migration state explicitly. Every team involved (platform and app) should see the same state.
 
-```
-CREATED → DUAL_WRITE → DRAINING → CUTOVER → DECOMMISSIONED
+```mermaid
+stateDiagram-v2
+    [*] --> CREATED: Provision green topic\n(config parity with blue)
+    CREATED --> DUAL_WRITE: Start replication\n(Cluster Linking / MM2 / dual-write)
+    DUAL_WRITE --> DRAINING: Blue consumers draining\nto zero lag
+    DRAINING --> CUTOVER: Offset translation +\nconsumer redirect to green
+    CUTOVER --> DECOMMISSIONED: Blue verified stable,\nrollback window passed
+    DUAL_WRITE --> CREATED: Rollback\n(zero cost, blue never stopped)
+    CUTOVER --> DRAINING: Rollback\n(redirect consumers back to blue)
+    DECOMMISSIONED --> [*]
 ```
 
 Persist state in your control plane (a Kafka topic tracking migrations, a config map, or an internal service). Never allow implicit state — if you don't know what phase you're in, you can't safely roll back.

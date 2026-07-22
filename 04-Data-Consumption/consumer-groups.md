@@ -59,6 +59,35 @@ consumer.subscribe(topics, new ConsumerRebalanceListener() {
 });
 ```
 
+## Application-Level DLQ Pattern
+
+Connect and Kafka Streams have framework-managed DLQ mechanisms (`05-Enterprise-Connect/error-handling-dlq.md`, `06-Stream-Processing/windowing.md`). A hand-written consumer has no equivalent built in — the application must implement the catch-produce-commit sequence itself:
+
+```java
+try {
+    process(record);
+    consumer.commitSync(offsetFor(record));
+} catch (RetriableException e) {
+    if (attempt < maxRetries) {
+        retryWithBackoff(record, attempt + 1); // e.g. 3 attempts before DLQ
+    } else {
+        producer.send(new ProducerRecord<>("dlq.my-topic", record.key(), record.value()));
+        consumer.commitSync(offsetFor(record)); // commit only after the DLQ write succeeds
+    }
+} catch (NonRetriableException e) {
+    producer.send(new ProducerRecord<>("dlq.my-topic", record.key(), record.value()));
+    consumer.commitSync(offsetFor(record));
+}
+```
+
+**Commit only after the DLQ write succeeds**, not before — committing first and then failing to produce to the DLQ loses the record entirely, with no trace it ever failed.
+
+**Retry before DLQ, not instead of it.** A fixed number of retries with backoff (e.g. 3 attempts) absorbs transient failures (a downstream dependency blip) without discarding good records; only route to DLQ once retries are exhausted, so the DLQ reflects genuine failures rather than routine transient noise.
+
+This is the third of three distinct DLQ mechanisms in this guide, none of which are interchangeable: Connect's framework-managed DLQ (config-driven, automatic error headers — `05-Enterprise-Connect/error-handling-dlq.md`), Kafka Streams/Flink's side-output DLQ for late or malformed events during stream processing (`06-Stream-Processing/windowing.md`), and this application-level pattern for hand-written consumers. Confirming which mechanism applies at each hop in a multi-stage pipeline — rather than assuming "DLQ" means one thing — is the actual design decision.
+
+If failures are frequent enough that in-process backoff sleeps start costing main-topic throughput, escalate to `retry-topic-pattern.md` instead of retrying in place.
+
 ## Consumer Group Protocol Flow
 
 Every rebalance follows this sequence:

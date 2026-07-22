@@ -1,5 +1,20 @@
 # Error Handling and Dead Letter Queues
 
+This file covers the Kafka Connect DLQ mechanism specifically. It is one of three distinct DLQ mechanisms used across this guide, and they are not interchangeable: Connect's is framework-managed and config-driven (below); Kafka Streams/Flink route late or malformed events to a DLQ via a side output during stream processing (`06-Stream-Processing/windowing.md`); a hand-written consumer has no built-in mechanism and must implement the catch-produce-commit sequence itself (`04-Data-Consumption/consumer-groups.md`'s Application-Level DLQ Pattern section). A pipeline with multiple hops (Connect → Streams/Flink → application consumer) can use all three at different stages — confirm which one applies at each hop rather than assuming "the DLQ" is a single thing.
+
+```mermaid
+flowchart TD
+    subgraph Connect["Kafka Connect DLQ (this file)"]
+        C1["errors.tolerance=all"] --> C2["dlq.my-connector topic\n(automatic error headers)"]
+    end
+    subgraph Streams["Kafka Streams / Flink DLQ"]
+        S1["Late or malformed event"] --> S2["Side output"] --> S3["DLQ topic"]
+    end
+    subgraph App["Application-Level DLQ"]
+        A1["Consumer catch"] --> A2["Retry with backoff"] --> A3["Produce to DLQ"] --> A4["Commit offset"]
+    end
+```
+
 ## Connector Failure Modes
 
 Connect tasks fail for three distinct reasons, each requiring a different diagnostic approach:

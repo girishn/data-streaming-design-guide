@@ -276,4 +276,5 @@ Each dimension in this framework maps to a detailed module in the guide:
 - Processing Framework / where Kafka Connect hands off to Flink for pipelines touching an external system → [connect-vs-flink-framework.md](connect-vs-flink-framework.md)
 - Processing Framework / one pipeline or two — Lambda vs Kappa vs the Data Streaming Platform model, the decision one level above the Kafka Streams/Flink/ksqlDB choice → [01-Core-Concepts/lambda-vs-kappa-vs-streaming-platform.md](01-Core-Concepts/lambda-vs-kappa-vs-streaming-platform.md)
 - Producer / consumer / broker tuning → [13-Performance-Tuning/](13-Performance-Tuning/)
+- Ingestion pattern / keeping a database and a topic consistent without a dual-write race — → [10-Operational-Patterns/transactional-outbox.md](10-Operational-Patterns/transactional-outbox.md), [10-Operational-Patterns/cdc-debezium.md](10-Operational-Patterns/cdc-debezium.md)
 - Throughput/capacity growth rate (distinct from the organizational scale in F6 above) — the repeatable resize cadence for compounding growth → [13-Performance-Tuning/capacity-scaling-cadence.md](13-Performance-Tuning/capacity-scaling-cadence.md)

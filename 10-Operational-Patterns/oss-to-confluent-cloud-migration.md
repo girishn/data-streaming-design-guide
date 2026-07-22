@@ -1,6 +1,6 @@
 # OSS Kafka to Confluent Cloud Migration
 
-Migrating from a self-managed OSS Kafka cluster to Confluent Cloud is a sequence of coordinated phases, not a single cutover event. The primary tools — Cluster Linking, Schema Linking, and the `promote` command — allow zero-downtime migration with exact offset parity. The key risk is doing the phases out of order.
+Migrating from a self-managed OSS Kafka cluster to Confluent Cloud is a sequence of coordinated phases, not a single cutover event. The primary tools — Cluster Linking, Schema Linking, and the `promote` command — allow zero-downtime migration with exact offset parity. The key risk is doing the phases out of order. This phased, both-systems-running-in-parallel approach is a Strangler Fig migration: traffic moves incrementally while the old and new systems coexist, rather than a single big-bang cutover.
 
 ---
 

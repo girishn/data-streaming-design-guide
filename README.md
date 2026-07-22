@@ -4,7 +4,7 @@ Enterprise-grade reference covering Apache Kafka and Confluent Platform architec
 
 ## How to Use This Guide
 
-Each module is self-contained. Navigate directly to the area matching your immediate problem: if you are debugging consumer lag, start in `11-Monitoring-Observability/consumer-lag.md`; if you are wiring a CDC pipeline, go to `10-Operational-Patterns/cdc-debezium.md`. Cross-references are explicit within files. No prescribed reading order — this is a reference, not a course.
+Each module is self-contained. Navigate directly to the area matching your immediate problem: if you are debugging consumer lag, start in `11-Monitoring-Observability/consumer-lag.md`; if you need to keep a database and a Kafka topic consistent without a dual-write race, go to `10-Operational-Patterns/transactional-outbox.md`; if you are wiring a CDC pipeline, go to `10-Operational-Patterns/cdc-debezium.md`. Cross-references are explicit within files. No prescribed reading order — this is a reference, not a course.
 
 **Designing a new system from scratch?** Start with the [Decision Framework](decision-framework.md) — a phase-by-phase elimination flow that maps your requirements to forced choices and ruled-out options before you touch any module detail.
 
@@ -21,6 +21,29 @@ Each module is self-contained. Navigate directly to the area matching your immed
 **Setting up CI/CD for topic, schema, and connector changes?** Start with [10 — Operational Patterns / platform-automation.md](10-Operational-Patterns/platform-automation.md) for the automation-tiers overview, then [gitops-terraform.md](10-Operational-Patterns/gitops-terraform.md) for the canonical pipeline stage list and Terraform structure, and [opa-policy-enforcement.md](10-Operational-Patterns/opa-policy-enforcement.md) for the policy checks that run inside it.
 
 **Preparing for an interview or design session?** See the [Interview Cheat Sheet](interview-cheat-sheet.md) — a condensed one-pager: five discovery questions, the two structural gates, the key elimination table, and the anti-pattern list. Five minutes to reload the mental model.
+
+---
+
+## Design Patterns in This Guide
+
+Named, reusable architectural patterns, scattered across their relevant modules by topic (this guide is organized by module, not by cross-cutting concept — see "How to Use This Guide" above). This is a flat index into content that already exists elsewhere, not new material:
+
+| Pattern | Solves | Where |
+|---|---|---|
+| Transactional Outbox | Dual-write race between a DB commit and a Kafka publish | [10-Operational-Patterns/transactional-outbox.md](10-Operational-Patterns/transactional-outbox.md) |
+| Change Data Capture (CDC) | Streaming database changes without touching application code | [10-Operational-Patterns/cdc-debezium.md](10-Operational-Patterns/cdc-debezium.md) |
+| Blue-Green Topic Migration | Changing partition count without breaking key-to-partition ordering | [10-Operational-Patterns/blue-green-topic-migration.md](10-Operational-Patterns/blue-green-topic-migration.md) |
+| Idempotent Producer / Consumer Dedup | Duplicate delivery on retry or rebalance | [03-Data-Production/idempotent-producers.md](03-Data-Production/idempotent-producers.md) |
+| Dead Letter Queue (three distinct mechanisms) | Isolating bad records without stalling a pipeline — Connect, stream-processing side-output, and hand-written-consumer variants are not interchangeable | [05-Enterprise-Connect/error-handling-dlq.md](05-Enterprise-Connect/error-handling-dlq.md) |
+| Compacted Topic as Latest-State Cache | Serving current entity state without a separate database | [topic-design-framework.md](topic-design-framework.md) |
+| Tenant Isolation (hard vs. soft) | Multi-tenant data separation at the topic or ACL level | [topic-design-framework.md](topic-design-framework.md) |
+| Lambda vs. Kappa vs. Data Streaming Platform | One pipeline or two for combined real-time + historical views | [01-Core-Concepts/lambda-vs-kappa-vs-streaming-platform.md](01-Core-Concepts/lambda-vs-kappa-vs-streaming-platform.md) |
+| Capacity Scaling Cadence | A repeatable resize cycle for compounding throughput growth | [13-Performance-Tuning/capacity-scaling-cadence.md](13-Performance-Tuning/capacity-scaling-cadence.md) |
+| Retry Topic Chain | Staged backoff without blocking the main partition when in-process retry isn't enough | [04-Data-Consumption/retry-topic-pattern.md](04-Data-Consumption/retry-topic-pattern.md) |
+| Claim Check | Large payloads without oversized Kafka records | [10-Operational-Patterns/claim-check-large-messages.md](10-Operational-Patterns/claim-check-large-messages.md) |
+| Request-Reply | Synchronous-style RPC over existing Kafka topics — and when not to build it | [10-Operational-Patterns/request-reply-pattern.md](10-Operational-Patterns/request-reply-pattern.md) |
+
+**Out of scope by design:** event sourcing, CQRS, and the saga/event-collaboration pattern are application-architecture patterns that can use Kafka as a transport, but the pattern itself doesn't hinge on a Kafka/Confluent-specific decision the way the patterns above do — this guide covers infrastructure and platform decisions, not general software architecture. See `CLAUDE.md` for the guide's scope statement. [Confluent's own pattern catalog](https://developer.confluent.io/patterns/) covers a wider set of naming/serialization/stream-processing primitives (event routers, mappers, aggregators, joiners) than listed above — those are mechanism-level building blocks already covered throughout Modules 05 and 06 under their Kafka-specific names (SMTs, `KStream`/`KTable` operations, windowing) rather than repeated here as separately named patterns.
 
 ---
 
@@ -50,7 +73,7 @@ Schema compatibility enforcement, PII handling, audit lineage? → [08 — Strea
 mTLS or OAuth/OIDC? Fine-grained access via Identity Pools? → [09 — Security Architecture](09-Security-Architecture/mtls-oauth.md)
 
 **8. How does data enter the system?**
-Direct producer, Kafka Connect, or CDC from a database? If an external system is on either edge,
+Direct producer, Kafka Connect, or CDC from a database? If the source is a database that must stay consistent with what's published — no dual-write race between the DB commit and the Kafka send — that's the transactional outbox pattern, not just "CDC" → [10-Operational-Patterns/transactional-outbox.md](10-Operational-Patterns/transactional-outbox.md). If an external system is on either edge,
 work through the boundary decision first → [Connect vs Flink Framework](connect-vs-flink-framework.md),
 [05 — Enterprise Connect](05-Enterprise-Connect/README.md), [10 — Operational Patterns](10-Operational-Patterns/cdc-debezium.md)
 
@@ -138,6 +161,7 @@ Consumer group mechanics, partition assignment strategies, cooperative rebalanci
 - [consumer-groups.md](04-Data-Consumption/consumer-groups.md)
 - [cooperative-rebalancing.md](04-Data-Consumption/cooperative-rebalancing.md)
 - [static-membership.md](04-Data-Consumption/static-membership.md)
+- [retry-topic-pattern.md](04-Data-Consumption/retry-topic-pattern.md)
 
 ---
 
@@ -207,6 +231,9 @@ Transactional outbox for dual-write safety, Debezium CDC configuration, RocksDB 
 - [platform-automation.md](10-Operational-Patterns/platform-automation.md)
 - [opa-policy-enforcement.md](10-Operational-Patterns/opa-policy-enforcement.md)
 - [oss-to-confluent-cloud-migration.md](10-Operational-Patterns/oss-to-confluent-cloud-migration.md)
+- [testing-strategy.md](10-Operational-Patterns/testing-strategy.md)
+- [claim-check-large-messages.md](10-Operational-Patterns/claim-check-large-messages.md)
+- [request-reply-pattern.md](10-Operational-Patterns/request-reply-pattern.md)
 
 ---
 

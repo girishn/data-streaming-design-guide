@@ -10,6 +10,15 @@ Every data pipeline, batch or streaming, is a directed graph of **source → tra
 
 **How teams end up here:** almost never by deliberate greenfield design. The typical path is an existing batch pipeline that works fine until a stakeholder asks for a real-time dashboard, the batch job can't just be scheduled to run faster, and a full redesign isn't on the table. Bolting a streaming pipeline alongside the existing batch one is the pragmatic-looking choice in the moment.
 
+```mermaid
+flowchart LR
+    Source[(Source Data)] --> Batch["Batch Layer\n(Spark/Snowflake via Airflow)"]
+    Source --> Speed["Speed Layer\n(Kafka + Flink/Spark Streaming)"]
+    Batch --> Serving[Serving Layer]
+    Speed --> Serving
+    Serving --> Consumers[Consumers]
+```
+
 **Why it costs more than it looks like it costs:**
 
 | Cost | Mechanism |
@@ -27,6 +36,16 @@ Lambda is not a design mistake — it powers real production systems at scale, a
 
 **What it looks like:** every source — databases via CDC (Debezium), logs via agents, external systems via their own connectors — flows into one unified stream in a broker (Kafka). One processing engine (Flink, or Kafka Streams for JVM-native cases) transforms it and sends the result downstream, whether that's other streaming consumers or a batch-style sink. One codebase, one tech stack, one team, one place where business logic lives and gets debugged.
 
+```mermaid
+flowchart LR
+    DBSource[Database via CDC] --> Stream["Unified Stream\n(Kafka)"]
+    Logs["Logs / Agents"] --> Stream
+    External["External Systems"] --> Stream
+    Stream --> Engine["One Processing Engine\n(Flink or Kafka Streams)"]
+    Engine --> Consumers[Streaming Consumers]
+    Engine --> BatchSink["Batch-Style Sink"]
+```
+
 **The two standard objections, and why they're solved, not fundamental:**
 
 1. **"I can't afford to keep terabytes of history in my broker."** True when streaming data had to live entirely on the broker's local disks. Tiered storage (KIP-405, shipped as a production-ready OSS feature in Kafka 3.6) moves cold segments to object storage, decoupling retention cost from local disk cost — see `02-Broker-Infrastructure/tiered-storage.md`.
@@ -41,6 +60,14 @@ The Data Streaming Platform model is Kappa plus two refinements that address wha
 **Materialize into an open table format.** Sync the stream into Apache Iceberg (or another open table format) so tools with no native Kafka client get a queryable table backed by the same underlying data — no separate warehouse-loading pipeline required. On Confluent Cloud this is Tableflow (`01-Core-Concepts/kafka-vs-confluent.md`): automated topic-to-Iceberg materialization, queryable via Trino, Spark, Athena, Snowflake.
 
 **Net result:** one stream, two consumption modes from the same underlying data — real-time, for Flink jobs and downstream microservices; and tabular, for whatever query engine the analytics side already uses. Nobody builds a second pipeline to get there.
+
+```mermaid
+flowchart LR
+    Sources[(Sources)] --> Stream["Unified Stream\n(shift-left governed)"]
+    Stream --> RT["Real-Time Consumers\n(Flink jobs, microservices)"]
+    Stream --> Iceberg["Open Table Format\n(Tableflow / Iceberg)"]
+    Iceberg --> BI["BI / SQL Engines\n(Trino, Spark, Snowflake, Athena)"]
+```
 
 This is the architecture `01-Core-Concepts/data-streaming-platform.md` describes in depth — the log as the primary substrate, databases and tables as materialized views derived from it, not the other way around.
 

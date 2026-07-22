@@ -8,13 +8,31 @@ When an application must update a database and publish an event to Kafka as part
 
 **Kafka succeeds, database fails:** The application publishes to Kafka first, then the database transaction rolls back (constraint violation, deadlock, timeout). Downstream consumers process a phantom event for a state transition that never occurred in the source system.
 
-Both modes stem from the same root: two independent systems with no shared transaction boundary. Distributed two-phase commit across a relational database and Kafka is theoretically possible but prohibitively expensive in practice. The transactional outbox pattern solves this without 2PC.
+Both modes stem from the same root: two independent systems with no shared transaction boundary. Distributed two-phase commit across a relational database and Kafka is theoretically possible but prohibitively expensive in practice. The transactional outbox pattern solves this without 2PC. Confluent's own pattern catalog names the naive dual-write anti-pattern this section describes "Database Write Aside."
 
 ## The Outbox Pattern
 
 The application writes its business state change and a structured event record into a dedicated **outbox table** within a **single local ACID transaction**. Because both writes share one transaction, they are atomically consistent — either both commit or neither does.
 
 A separate relay process reads committed outbox rows and publishes them to Kafka. The relay is independent of the application; it cannot introduce the dual-write failure modes because it only reads from the database.
+
+```mermaid
+sequenceDiagram
+    participant App
+    participant DB as Database (single ACID txn)
+    participant Relay as Debezium Relay
+    participant Kafka
+    participant Consumer
+
+    App->>DB: BEGIN
+    App->>DB: INSERT business_table
+    App->>DB: INSERT outbox_table
+    App->>DB: COMMIT
+    DB-->>Relay: WAL/binlog entry (outbox insert)
+    Relay->>Kafka: Publish event (OutboxEventRouter SMT)
+    Kafka->>Consumer: Deliver (at-least-once)
+    Consumer->>Consumer: Check processed_events table (idempotency)
+```
 
 **Outbox table schema:**
 

@@ -1,6 +1,6 @@
 # Module 12 — Multi-Region and Disaster Recovery
 
-Replication topologies, technology tradeoffs, and RPO/RTO characteristics for multi-region Kafka deployments.
+Replication topologies, technology tradeoffs, and RPO/RTO characteristics for multi-region Kafka deployments. This module is what Confluent's own pattern catalog names "Geo Replication."
 
 ## Files
 
