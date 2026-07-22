@@ -21,6 +21,8 @@ Sizing from OSS metrics:
 
 Rule of thumb: 1 eCKU handles ~50 MB/s produce + 150 MB/s consume. Start with observed peak * 1.5 headroom; autoscaling handles spikes beyond that.
 
+This elastic, autoscaling behavior applies to Basic/Standard tiers. If your migration target is Dedicated — required for PrivateLink or broker-side schema validation, see Phase 1 below — CKU sizing is fixed, not autoscaling: `01-Core-Concepts/kafka-vs-confluent.md`. Sustained growth on Dedicated is a manual resize, not something the platform absorbs; for a repeatable resize cadence under compounding growth, see `13-Performance-Tuning/capacity-scaling-cadence.md`.
+
 ### Feature Gap Assessment
 
 Verify before planning:

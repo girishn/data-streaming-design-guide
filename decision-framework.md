@@ -91,7 +91,7 @@ flowchart TD
         F3["Delivery requirement\nexample: Exactly-once for payments\n→ DEL_DIM: eliminates AMO · ALO on critical paths\n→ mandates EOS"]
         F4["Infrastructure constraint\nexample: Confluent Cloud only\n→ INFRA_DIM: eliminates OSS · CP · HYB\n→ mandates CC"]
         F5["SLA requirement\nexample: RPO under 60 seconds\n→ DR_DIM: eliminates NO_DR · MM2\n→ mandates CL or AA · choice remains"]
-        F6["Scale requirement\nexample: 1000+ services · 100+ developers\n→ AUTH_DIM: eliminates PLAINTEXT · SASL\n→ mandates MTLS or OAUTH · choice remains\n→ ISOL_DIM: eliminates NO_ISO · SOFT\n→ mandates HARD\n→ SCHEMA_DIM: eliminates NO_SCH · NONE_C\n→ mandates FULL_T"]
+        F6["Organizational scale requirement\nexample: 1000+ services · 100+ developers\n→ AUTH_DIM: eliminates PLAINTEXT · SASL\n→ mandates MTLS or OAUTH · choice remains\n→ ISOL_DIM: eliminates NO_ISO · SOFT\n→ mandates HARD\n→ SCHEMA_DIM: eliminates NO_SCH · NONE_C\n→ mandates FULL_T\n(for throughput/capacity growth rate, see Cross-References)"]
         F1 --> F2 --> F3 --> F4 --> F5 --> F6
     end
 
@@ -276,3 +276,4 @@ Each dimension in this framework maps to a detailed module in the guide:
 - Processing Framework / where Kafka Connect hands off to Flink for pipelines touching an external system → [connect-vs-flink-framework.md](connect-vs-flink-framework.md)
 - Processing Framework / one pipeline or two — Lambda vs Kappa vs the Data Streaming Platform model, the decision one level above the Kafka Streams/Flink/ksqlDB choice → [01-Core-Concepts/lambda-vs-kappa-vs-streaming-platform.md](01-Core-Concepts/lambda-vs-kappa-vs-streaming-platform.md)
 - Producer / consumer / broker tuning → [13-Performance-Tuning/](13-Performance-Tuning/)
+- Throughput/capacity growth rate (distinct from the organizational scale in F6 above) — the repeatable resize cadence for compounding growth → [13-Performance-Tuning/capacity-scaling-cadence.md](13-Performance-Tuning/capacity-scaling-cadence.md)

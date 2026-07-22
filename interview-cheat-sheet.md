@@ -107,4 +107,4 @@ Never pick without acknowledging uncertainty, and never defer without stating wh
 
 ---
 
-*Full frameworks: [streaming-design-approach.md](streaming-design-approach.md) · [decision-framework.md](decision-framework.md) · [topic-design-framework.md](topic-design-framework.md) · [stream-processing-framework.md](stream-processing-framework.md) · [Lambda vs Kappa](01-Core-Concepts/lambda-vs-kappa-vs-streaming-platform.md)*
+*Full frameworks: [streaming-design-approach.md](streaming-design-approach.md) · [decision-framework.md](decision-framework.md) · [topic-design-framework.md](topic-design-framework.md) · [stream-processing-framework.md](stream-processing-framework.md) · [Lambda vs Kappa](01-Core-Concepts/lambda-vs-kappa-vs-streaming-platform.md) · [Capacity Scaling Cadence](13-Performance-Tuning/capacity-scaling-cadence.md)*

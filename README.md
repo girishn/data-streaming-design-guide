@@ -237,6 +237,7 @@ Producer batching and compression tuning, consumer fetch configuration, broker t
 - [broker-tuning.md](13-Performance-Tuning/broker-tuning.md)
 - [quota-management.md](13-Performance-Tuning/quota-management.md)
 - [end-to-end-latency.md](13-Performance-Tuning/end-to-end-latency.md)
+- [capacity-scaling-cadence.md](13-Performance-Tuning/capacity-scaling-cadence.md)
 
 ---
 

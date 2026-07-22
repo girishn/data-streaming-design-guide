@@ -162,3 +162,4 @@ Auto-registration allows any producer to push a new schema version on first use.
 - Schema registration via GitOps/Terraform — [10-Operational-Patterns/gitops-terraform.md](../10-Operational-Patterns/gitops-terraform.md)
 - How Connect vs Flink each react to a live schema change (Connect often absorbs additive changes
   automatically; a running Flink job needs a savepoint-and-redeploy to use a new field) — [connect-vs-flink-framework.md](../connect-vs-flink-framework.md) Layer 8
+- Registry scaling as subject/schema count grows under sustained platform growth (self-managed capacity vs. Confluent Cloud Stream Governance package limits) — [13-Performance-Tuning/capacity-scaling-cadence.md](../13-Performance-Tuning/capacity-scaling-cadence.md)

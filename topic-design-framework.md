@@ -84,7 +84,7 @@ For small-to-medium message sizes (< 10 KB), throughput rarely drives partition 
 
 Apply a growth multiplier (2–3×) to max expected consumer parallelism at scale, not to current needs.
 
-See `02-Broker-Infrastructure/partitioning-strategies.md` for per-partition throughput benchmarks and hot partition diagnosis.
+See `02-Broker-Infrastructure/partitioning-strategies.md` for per-partition throughput benchmarks and hot partition diagnosis. This multiplier is a one-time provisioning buffer, not a substitute for a repeatable resize process — for platforms growing at a compounding rate (e.g. 10x every 6 months) that will exhaust this buffer within a cycle or two, see `13-Performance-Tuning/capacity-scaling-cadence.md`.
 
 ---
 

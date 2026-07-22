@@ -30,6 +30,14 @@ KRaft (Kafka Raft) eliminates ZooKeeper by internalising metadata management int
 
 **Rolling maintenance:** KRaft allows assigning new topic partitions to brokers that are in a controlled offline state, making cluster shrinking and rebalancing during maintenance windows more predictable than with ZooKeeper-based coordination.
 
+## Controller Load and Broker Decommissioning at Extreme Scale
+
+The 2 million partition ceiling is a lab-tested limit, not a safe operating target — controller load becomes a distinct operational risk well before a cluster approaches it. LinkedIn's own production experience at very large scale (100+ clusters, 4,000+ brokers, 7M partitions) reported "slow controllers and controller failure caused by memory pressure," which "may cause cascading controller failure, one after another" — a failure mode driven by sustained metadata churn (topic/partition creates, deletes, reassignments), not by steady-state throughput or CKU capacity. Monitor controller memory and metadata request latency as their own leading indicators during sustained growth, separately from broker-level `RequestHandlerAvgIdlePercent` (`13-Performance-Tuning/broker-tuning.md`).
+
+A related friction under continuous growth: decommissioning a broker requires migrating all its replicas elsewhere, but if new topics are being created continuously, the broker being drained can keep receiving new replica assignments — a moving target. LinkedIn's fix was a maintenance-mode flag that freezes new assignments to a broker before draining it. Self-managed clusters doing frequent broker maintenance under active topic-creation load should build or adopt an equivalent freeze mechanism rather than relying on a point-in-time reassignment.
+
+**This is a self-managed / Confluent Platform concern only.** On Confluent Cloud, Confluent operates the KRaft controller quorum and the broker fleet — controller memory management and broker decommissioning are handled internally by the Kora engine and never surface to the customer, regardless of cluster tier. See `10-Operational-Patterns/oss-to-confluent-cloud-migration.md` and `13-Performance-Tuning/capacity-scaling-cadence.md` for the Confluent Cloud side of capacity growth.
+
 ## Migration from ZooKeeper to KRaft
 
 Migration is not optional for organisations on Confluent Platform — it is **required before upgrading to Confluent Platform 8.0**. There is no path to CP 8.0 from a ZooKeeper-based cluster.
