@@ -1,5 +1,7 @@
 # The Data Streaming Platform Model
 
+This is the third evolution beyond the two architectures most teams try first — a batch pipeline patched with a bolted-on streaming layer (Lambda), then a single unified streaming engine (Kappa). See [lambda-vs-kappa-vs-streaming-platform.md](lambda-vs-kappa-vs-streaming-platform.md) for that comparison and why this model is where Lambda and Kappa both end up converging. What follows here is the detailed mechanics of the model itself.
+
 ## Event-Driven Architecture Primitives
 
 An **event** in Kafka is a record with four fields: key, value, timestamp, and optional headers. The broker stores all of these as untyped byte arrays — it is format-agnostic. Schema enforcement happens at the client layer (via Schema Registry), not the broker. This distinction matters: without Schema Registry enforcement, a misconfigured producer can write garbage bytes to a topic and the broker will accept them.

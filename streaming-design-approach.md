@@ -76,6 +76,7 @@ Once elimination has narrowed the space, walk through the design in a fixed laye
 - Stateless: filter, enrich, route — any Connect SMT or lightweight consumer
 - Stateful: aggregation, joins, windowing — Kafka Streams (embedded, simple) or Flink (separate cluster, powerful)
 - No processing needed: raw events are sufficient for all consumers
+- One level up from this choice: if the problem statement implies both a real-time and a historical/analytical view of the same data, resolve that as one pipeline or two before picking a framework — see [01-Core-Concepts/lambda-vs-kappa-vs-streaming-platform.md](01-Core-Concepts/lambda-vs-kappa-vs-streaming-platform.md). Defaulting to two pipelines here (Lambda) is the single most common structural mistake at this layer.
 
 **4. Consumption** — Consumer topology
 - One consumer group per downstream system — independent pace, independent offset
@@ -142,5 +143,6 @@ Phase 4: Declare decided vs open
 ## Cross-References
 
 - Full elimination map by dimension — [decision-framework.md](decision-framework.md)
+- One pipeline or two — Lambda vs Kappa vs Data Streaming Platform — [01-Core-Concepts/lambda-vs-kappa-vs-streaming-platform.md](01-Core-Concepts/lambda-vs-kappa-vs-streaming-platform.md)
 - Worked example: enterprise banking platform — [14-Case-Studies/banking-platform-design.md](14-Case-Studies/banking-platform-design.md)
 - Worked example: enterprise retail platform — [14-Case-Studies/retail-platform-design.md](14-Case-Studies/retail-platform-design.md)

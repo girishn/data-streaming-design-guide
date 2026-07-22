@@ -274,4 +274,5 @@ Each dimension in this framework maps to a detailed module in the guide:
 - Topic topology (ordering, joins, isolation, partition count, naming) — the layered path behind the Retention and Tenant Isolation dimensions above → [topic-design-framework.md](topic-design-framework.md)
 - Processing Framework / ksqlDB vs Kafka Streams vs Flink → [06-Stream-Processing/kafka-streams-vs-flink.md](06-Stream-Processing/kafka-streams-vs-flink.md)
 - Processing Framework / where Kafka Connect hands off to Flink for pipelines touching an external system → [connect-vs-flink-framework.md](connect-vs-flink-framework.md)
+- Processing Framework / one pipeline or two — Lambda vs Kappa vs the Data Streaming Platform model, the decision one level above the Kafka Streams/Flink/ksqlDB choice → [01-Core-Concepts/lambda-vs-kappa-vs-streaming-platform.md](01-Core-Concepts/lambda-vs-kappa-vs-streaming-platform.md)
 - Producer / consumer / broker tuning → [13-Performance-Tuning/](13-Performance-Tuning/)

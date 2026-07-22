@@ -58,7 +58,7 @@ Walk these in order once the elimination pass is done.
 
 1. **Ingestion** — Direct SDK producer / Kafka Connect managed / Connect self-managed / CDC (Debezium)
 2. **Transport** — Topic structure (gates above), partition key, retention policy
-3. **Processing** — Stateless (SMT / simple consumer) or stateful (Kafka Streams / Flink / ksqlDB)?
+3. **Processing** — Stateless (SMT / simple consumer) or stateful (Kafka Streams / Flink / ksqlDB)? If the problem implies both a real-time and a historical view: one unified pipeline (Kappa / Data Streaming Platform), not two (Lambda) — see Lambda vs Kappa below.
 4. **Consumption** — One consumer group per downstream system; offset commit strategy; DLQ
 5. **Governance** — Schema Registry compatibility mode; RBAC / ACLs scoped per principal; GitOps
 6. **Operations** — DLQ on every connector; consumer lag growth-rate alert; heartbeat topic
@@ -107,4 +107,4 @@ Never pick without acknowledging uncertainty, and never defer without stating wh
 
 ---
 
-*Full frameworks: [streaming-design-approach.md](streaming-design-approach.md) · [decision-framework.md](decision-framework.md) · [topic-design-framework.md](topic-design-framework.md) · [stream-processing-framework.md](stream-processing-framework.md)*
+*Full frameworks: [streaming-design-approach.md](streaming-design-approach.md) · [decision-framework.md](decision-framework.md) · [topic-design-framework.md](topic-design-framework.md) · [stream-processing-framework.md](stream-processing-framework.md) · [Lambda vs Kappa](01-Core-Concepts/lambda-vs-kappa-vs-streaming-platform.md)*

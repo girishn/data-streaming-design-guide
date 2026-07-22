@@ -111,6 +111,7 @@ Foundational positioning: OSS Kafka vs Confluent Cloud capabilities, the data st
 
 - [kafka-vs-confluent.md](01-Core-Concepts/kafka-vs-confluent.md)
 - [data-streaming-platform.md](01-Core-Concepts/data-streaming-platform.md)
+- [lambda-vs-kappa-vs-streaming-platform.md](01-Core-Concepts/lambda-vs-kappa-vs-streaming-platform.md)
 
 ---
 

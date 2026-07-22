@@ -6,3 +6,4 @@ Foundational positioning for engineers evaluating or operating Kafka and Conflue
 
 - [kafka-vs-confluent.md](kafka-vs-confluent.md) — OSS Kafka vs Confluent Cloud capability map, cost crossover heuristics, the "gold-layer" broker-as-system-of-record model.
 - [data-streaming-platform.md](data-streaming-platform.md) — Event-driven architecture primitives, the immutable log model, and the architectural implications of treating data in motion as the primary substrate.
+- [lambda-vs-kappa-vs-streaming-platform.md](lambda-vs-kappa-vs-streaming-platform.md) — Why teams end up with Lambda's dual-pipeline operational tax, the Kappa "batch is bounded streaming" insight and its two standard objections, and how the Data Streaming Platform model (shift-left + open-table materialization) resolves both. Comparison table and greenfield-vs-migration guidance.
