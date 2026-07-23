@@ -66,16 +66,14 @@ The broker **mutes the client's network channel** for `throttle_delay_ms`. Durin
 - Inflight requests already queued are still processed
 - The throttle time is included in the next response so the client can log it
 
-**Key configuration parameters:**
+**Key configuration parameters — the measurement window itself:**
 ```properties
-# Maximum throttle time the broker will apply (default: 5000ms)
-client.quota.max.throttle.time.ms=5000
-
-# Maximum throttle time reported in broker responses (can be lower than above)
-client.quota.max.throttle.time.in.response.ms=5000
+# Broker config — quota measurement window
+quota.window.num=11           # number of retained samples (default)
+quota.window.size.seconds=1   # length of each sample, in seconds (default)
 ```
 
-The `max.throttle.time` cap prevents a severe quota violation from muting a client for an unreasonably long period. Set it to a value that degrades throughput gracefully without triggering client-side timeouts (`request.timeout.ms`).
+`window_size_ms` in the formula above is `quota.window.num × quota.window.size.seconds`, converted to milliseconds — an 11-second rolling window by default. Fewer/shorter samples make the broker react to bursts faster but tolerate less burstiness before throttling; more/longer samples smooth out short bursts at the cost of slower reaction to sustained overuse. There is no separate broker-side cap on an individual throttle delay's duration — the delay is whatever the window math computes to bring the client's rolling average back under quota, so window size is the lever for bounding worst-case throttle duration, not a standalone timeout config. Tune `request.timeout.ms` on the client relative to how long the widest quota window on the cluster can throttle for, so a legitimate throttle doesn't get misread as a broker outage.
 
 ## Inter-Broker Replication Exemption
 

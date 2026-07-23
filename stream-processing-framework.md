@@ -36,11 +36,11 @@ This question determines framework eligibility before state size or team context
 | Join stream to a slowly-changing reference table | ksqlDB · Kafka Streams · Flink | — |
 | Join two event streams within a time window | Kafka Streams · Flink | ksqlDB (very limited) |
 | Detect a sequence of events over time (CEP) | **Flink only** (CEP library) | ksqlDB · Kafka Streams |
-| Temporal table join / point-in-time lookup | **Flink only** | Kafka Streams · ksqlDB |
+| Temporal table join / point-in-time lookup | Flink (native, default) · Kafka Streams (opt-in, versioned state stores only) | ksqlDB |
 | Pull-query access to materialised current state | ksqlDB · Kafka Streams (interactive queries) | Flink (no native pull query) |
 | SQL-based processing, no JVM application code | ksqlDB · Flink SQL | Kafka Streams |
 
-CEP and temporal joins eliminate everything except Flink immediately — do not continue evaluating the other frameworks if either of these is required.
+CEP eliminates everything except Flink immediately — do not continue evaluating the other frameworks if it's required. A temporal join no longer eliminates Kafka Streams outright: since KIP-889 (Kafka 3.5+) and KIP-914's DSL semantics, Kafka Streams can do a true point-in-time stream-table join if the table side is explicitly materialized as a versioned state store (`Materialized.as(versionedKeyValueStore(...))`) — not the default, and not supported for `GlobalKTable` or alongside `suppress()`. Prefer Flink when the join needs to be a drop-in default or those two gaps matter; Kafka Streams' versioned-store path is viable when the team is already committed to the JVM DSL and can live with the constraints.
 
 ---
 
@@ -184,7 +184,8 @@ flowchart TD
     A([Stream Processing]) --> B{"All transformations\nstateless?"}
     B -->|Yes| C["Kafka Connect SMT\nor simple consumer\nNo framework needed"]
     B -->|No| D{"Processing type?"}
-    D -->|"CEP / sequence detection\nor temporal table join"| E["Flink only\n(CEP library)"]
+    D -->|"CEP / sequence detection"| E["Flink only\n(CEP library)"]
+    D -->|"Temporal table join"| E2["Flink (default),\nor Kafka Streams with\nversioned state stores"]
     D -->|"Aggregation\nor stream join"| F{"Peak state size\nper partition?"}
     F -->|"< 20 GB"| G{"Team context?"}
     F -->|"20 GB – 1 TB"| H["Kafka Streams + S3 pre-seeding\nor Flink"]

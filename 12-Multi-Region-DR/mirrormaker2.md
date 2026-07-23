@@ -46,9 +46,9 @@ The translation is approximate, not exact. Because MM2 re-produces records, offs
 
 ## Consumer Group Migration at Failover
 
-MM2 does not automatically migrate consumer groups. At failover, consumers must be told where to start on the destination cluster. Two approaches:
+At failover, consumers must be told where to start on the destination cluster. Two approaches:
 
-**Option 1 — `MirrorClient` offset translation (programmatic):**
+**Option 1 — `MirrorClient` offset translation (programmatic, on-demand):**
 ```java
 // At failover, translate committed offsets from source to destination
 MirrorClient mirrorClient = new MirrorClient(mm2Config);
@@ -64,13 +64,16 @@ Map<TopicPartition, OffsetAndMetadata> destinationOffsets =
 adminClient.alterConsumerGroupOffsets("my-group", destinationOffsets).all().get();
 ```
 
-**Option 2 — `ConsumerTimestampsInterceptor` (automatic):**
-Configure consumers with the timestamp-based interceptor. At startup on the destination, the interceptor reads the checkpoint topic to find the timestamp of the last committed offset on the source and seeks the destination consumer to the first record at or after that timestamp.
+**Option 2 — `sync.group.offsets.enabled` (automatic, continuous):**
+Set this on the `MirrorCheckpointConnector` itself. Instead of only writing translated offsets to the internal checkpoints topic, the connector periodically writes them directly into the destination cluster's `__consumer_offsets` topic for any consumer group matching `sync.group.offsets.interval.seconds`'s emit cadence — so a consumer group that has never run on the destination can start there and resume from a translated position with no manual translation step.
 
 ```properties
-# Consumer config
-interceptor.classes=org.apache.kafka.connect.mirror.MirrorConsumerInterceptor
+# mm2.properties, on the checkpoint connector
+us-east->eu-west.sync.group.offsets.enabled = true
+us-east->eu-west.sync.group.offsets.interval.seconds = 60
 ```
+
+This only takes effect for groups that are **not actively committing** on the destination — MM2 will not overwrite offsets for a consumer group already running there. It's the mechanism to prefer for active-passive failover prep; use Option 1's `MirrorClient` API when you need a one-time, on-demand translation instead of continuous sync.
 
 Both approaches are at-least-once at failover — some records will be re-processed. Consumers must be idempotent.
 

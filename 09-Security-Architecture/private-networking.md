@@ -1,8 +1,8 @@
 # Private Networking for Confluent Cloud
 
-Confluent Cloud Dedicated clusters support private networking so that Kafka data plane traffic stays within your private network boundary and never traverses the public internet. This is a hard requirement for financial services, healthcare, and any workload where broker traffic must originate and terminate within routable private address space.
+Confluent Cloud private clusters support private networking so that Kafka data plane traffic stays within your private network boundary and never traverses the public internet. This is a hard requirement for financial services, healthcare, and any workload where broker traffic must originate and terminate within routable private address space.
 
-Private networking is available on **Dedicated clusters only** — Basic and Standard clusters do not support it.
+Private networking is available on **Dedicated, Enterprise, and Freight clusters** — Basic and Standard clusters do not support it. See `01-Core-Concepts/kafka-vs-confluent.md` for the full tier comparison; the examples below use Dedicated as the reference tier, but the same networking primitives apply across all three private-cluster types.
 
 ## Data Plane vs Control Plane
 

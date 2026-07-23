@@ -66,7 +66,7 @@ or record — there is no Connect primitive for combining two data sources.
 | Join shape | Owner | Notes |
 |---|---|---|
 | Stream-to-stream, within a time window | Flink or Kafka Streams | See `stream-processing-framework.md` Layer 2 for the split between them |
-| Stream-to-table (temporal / point-in-time lookup against a slowly-changing reference) | **Flink only** | `stream-processing-framework.md` Layer 2 — Kafka Streams and ksqlDB don't support true temporal joins |
+| Stream-to-table (temporal / point-in-time lookup against a slowly-changing reference) | Flink, or Kafka Streams with versioned state stores | `stream-processing-framework.md` Layer 2 — Flink's temporal join is native and default; Kafka Streams requires opting into versioned state stores (KIP-889/914) and doesn't support the join for `GlobalKTable` or with `suppress()`. ksqlDB still has no true temporal join. |
 | Stream enriched against reference data sourced from a database | Connect (CDC) feeds Flink (join) | See below |
 
 The recurring pattern for the third row: CDC the reference/dimension table into a compacted,

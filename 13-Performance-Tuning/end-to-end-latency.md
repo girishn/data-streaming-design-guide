@@ -38,7 +38,7 @@ ISR replication latency is the most operationally volatile component — it is s
 | Kafka Streams, stateful (RocksDB lookup) | 1–10ms per record | Increases as working set exceeds page cache; cold reads hit disk |
 | Flink, stateful | ms-level per record; checkpoint interval sets EOS delivery floor | Default checkpoint interval is 10s–5min — this dominates pipeline latency for EOS Flink jobs |
 
-For Kafka Streams, commit interval (`commit.interval.ms`, default 100ms) sets the minimum interval between offset commits and state store flushes — it is not per-record latency, but it determines how stale consumer lag metrics appear. See [kafka-streams-vs-flink.md](../06-Stream-Processing/kafka-streams-vs-flink.md).
+For Kafka Streams, commit interval (`commit.interval.ms`, default 30000ms — 100ms when `processing.guarantee` is set to an exactly-once mode) sets the minimum interval between offset commits and state store flushes — it is not per-record latency, but it determines how stale consumer lag metrics appear. See [kafka-streams-vs-flink.md](../06-Stream-Processing/kafka-streams-vs-flink.md).
 
 ---
 

@@ -43,6 +43,8 @@ Roles are scoped. The same role name at different scopes grants different permis
 | `DeveloperManage` | Create/delete topics, connectors, and consumer groups — no ACL management |
 | `DeveloperRead` | Read from topics, read consumer group offsets — no produce, no manage |
 | `DeveloperWrite` | Produce to topics — no consume, no manage |
+| `FlinkDeveloper` | Create and manage Flink statements/compute pools within the cluster — the default role SSO group mappings bind for Flink development access |
+| `DataDiscovery` | Explore and inspect topics/messages (schema and metadata visibility) without granting produce/consume rights — the other default SSO-bound role |
 
 ### Resource-level roles (Topic, Consumer Group, Subject)
 

@@ -34,8 +34,25 @@ confluent flink connection create openai-embeddings-connection \
 | AWS SageMaker | `sagemaker` |
 | Google AI / Vertex AI | `googleai` / `vertexai` |
 | Azure ML | `azureml` |
+| Anthropic | `anthropic` |
+| Fireworks AI | `fireworks` |
 
 The connection name is referenced in the `CREATE MODEL` statement. Rotating an API key means updating the connection — no SQL changes, no job redeployment.
+
+**Confluent-managed models (no external connection required):** Confluent also runs a fully-managed catalog of open-weight models (e.g. `microsoft/Phi-3.5-mini-instruct`, `BAAI/bge-large-en-v1.5`) directly, with no API key or `model connection` to provision:
+
+```sql
+CREATE MODEL managed_embedding
+INPUT  (input STRING)
+OUTPUT (vector ARRAY<FLOAT>)
+WITH (
+  'TASK'             = 'embedding',
+  'PROVIDER'         = 'CONFLUENT',
+  'CONFLUENT.MODEL'  = 'BAAI/bge-large-en-v1.5'
+);
+```
+
+Use this when the goal is a quick embedding/classification pipeline without owning API key rotation or an external provider relationship; use a named provider connection when the workload needs a specific frontier model (GPT-4-class, Claude) or existing provider account.
 
 ---
 

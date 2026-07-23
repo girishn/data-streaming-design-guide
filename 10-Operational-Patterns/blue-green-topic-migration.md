@@ -58,7 +58,7 @@ Use **MirrorMaker 2** or **Cluster Linking** to mirror blue → green asynchrono
 
 **Cluster Linking** (Confluent Platform/Cloud): creates a byte-for-byte replica. Offsets on the green topic are identical to the corresponding offsets on the blue topic. Consumer offset sync is native — no translation step needed. This is the lowest-risk path when both clusters (or a source and mirror topic on the same cluster) support Cluster Linking.
 
-**MirrorMaker 2**: framework-based replication. Offsets on the green topic are not identical to blue — MM2 uses `ConsumerTimestampsInterceptor` to commit timestamps on the source and then maps those timestamps to green offsets. An explicit offset translation step is required before consumers cut over. Adds operational complexity but works across clusters that don't support Cluster Linking.
+**MirrorMaker 2**: framework-based replication. Offsets on the green topic are not identical to blue — the `MirrorCheckpointConnector` writes a source-to-destination offset mapping to an internal checkpoints topic, and can optionally sync those translated offsets directly into green's `__consumer_offsets` via `sync.group.offsets.enabled` so consumer groups that have never run on green can start there without a manual step. See `12-Multi-Region-DR/mirrormaker2.md` for the full mechanism and its `MirrorClient`-based on-demand alternative. Adds operational complexity but works across clusters that don't support Cluster Linking.
 
 Green topic will lag blue by the replication latency (typically seconds). This is acceptable — consumers won't cut over until blue lag reaches zero.
 

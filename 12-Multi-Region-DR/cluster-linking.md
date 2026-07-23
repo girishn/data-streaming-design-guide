@@ -71,12 +71,12 @@ By default, Cluster Linking replicates topic data only. Additional synchronisati
 
 | Configuration | Default | Effect |
 |---|---|---|
-| `topic.config.sync.ms` | Disabled | Syncs topic-level configurations (retention, compaction, segment size) |
-| `acl.sync.enable` | Disabled | Syncs topic ACLs to destination |
-| `consumer.offset.sync.enable` | Disabled | Syncs consumer group committed offsets |
-| `consumer.offset.sync.ms` | 30000 | How often offsets are synced (ms) |
+| `topic.config.sync.ms` | `5000` (enabled) | Syncs topic-level configurations (retention, compaction, segment size) — on by default |
+| `acl.sync.enable` | `false` | Syncs topic ACLs to destination |
+| `consumer.offset.sync.enable` | `false` | Syncs consumer group committed offsets |
+| `consumer.offset.sync.ms` | `30000` | How often offsets are synced (ms) |
 
-Enable all three for a complete DR setup. Without ACL sync, consumers on the destination will lack the permissions they had on the source. Without offset sync, consumers must restart from the beginning or latest offset.
+Topic config sync is already on by default; explicitly enable ACL sync and offset sync for a complete DR setup. Without ACL sync, consumers on the destination will lack the permissions they had on the source. Without offset sync, consumers must restart from the beginning or latest offset.
 
 ## Confluent Cloud vs Confluent Platform
 
